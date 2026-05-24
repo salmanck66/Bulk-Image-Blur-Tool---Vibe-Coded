@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Logo Blur Tool</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0e0f;
+    --surface: #1a1a1c;
+    --surface2: #242427;
+    --border: #2e2e32;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #6b6b75;
+    --red: #ff4444;
+    --green: #44ff88;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  header {
+    padding: 0.9rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg);
+    z-index: 50;
+    height: 54px;
+  }
+  .logo { font-size: 1rem; font-weight: 800; letter-spacing: -0.03em; }
+  .logo span { color: var(--accent); }
+  .header-stats {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    display: flex;
+    gap: 1.25rem;
+  }
+  .stat-val { color: var(--accent); }
+
+  main { display: flex; height: calc(100vh - 54px); }
+
+  /* ── Sidebar ── */
+  aside {
+    width: 260px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem;
+    gap: 1.25rem;
+    overflow-y: auto;
+  }
+  aside::-webkit-scrollbar { width: 3px; }
+  aside::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .sec-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .dropzone {
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+  }
+  .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: rgba(232,255,71,0.04); }
+  .dropzone-icon { font-size: 1.75rem; margin-bottom: 0.4rem; }
+  .dropzone p { font-size: 0.75rem; color: var(--muted); line-height: 1.6; }
+  .dropzone strong { color: var(--text); font-size: 0.8rem; display: block; margin-bottom: 0.2rem; }
+
+  .ctrl {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.6rem;
+  }
+  .ctrl label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .ctrl label span { font-family: 'DM Mono', monospace; color: var(--accent); }
+  input[type=range] {
+    width: 100%; -webkit-appearance: none;
+    height: 3px; background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 13px; height: 13px;
+    border-radius: 50%; background: var(--accent); cursor: pointer;
+  }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 0.55rem 0.875rem; border-radius: 8px;
+    font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.75rem;
+    cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+    transition: all 0.15s; width: 100%; margin-bottom: 5px;
+  }
+  .btn:last-child { margin-bottom: 0; }
+  .btn:hover { background: var(--surface2); border-color: var(--muted); }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn-accent { background: var(--accent); color: #0e0e0f; border-color: transparent; }
+  .btn-accent:hover { background: #d4e83e; }
+  .btn-danger { border-color: var(--red); color: var(--red); }
+  .btn-danger:hover { background: rgba(255,68,68,0.08); }
+  .btn-green { border-color: var(--green); color: var(--green); }
+  .btn-green:hover { background: rgba(68,255,136,0.06); }
+
+  .progress-wrap { display: none; }
+  .prog-bg { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .prog-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.2s; }
+  .prog-label { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted); margin-top: 5px; }
+
+  /* ── Grid ── */
+  .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .toolbar {
+    padding: 0.6rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.75rem;
+    flex-shrink: 0; flex-wrap: wrap;
+  }
+  .toolbar-hint { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); flex: 1; }
+  .toolbar-hint span { color: var(--accent2); }
+  .tbtn {
+    padding: 0.35rem 0.75rem; border-radius: 6px; font-family: 'Syne', sans-serif;
+    font-weight: 600; font-size: 0.72rem; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--muted);
+    transition: all 0.12s;
+  }
+  .tbtn:hover { color: var(--text); border-color: var(--muted); }
+  .tbtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .grid-wrap { flex: 1; overflow-y: auto; padding: 1.25rem; }
+  .grid-wrap::-webkit-scrollbar { width: 4px; }
+  .grid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .img-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+
+  .img-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+    cursor: pointer;
+  }
+  .img-card:hover { border-color: var(--muted); }
+  .img-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .img-card.edited { border-color: rgba(232,255,71,0.35); }
+
+  .img-thumb { position: relative; aspect-ratio: 1; overflow: hidden; background: #111; }
+  .img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+  .img-badge {
+    position: absolute; top: 5px; right: 5px;
+    background: var(--accent); color: #0e0e0f;
+    font-family: 'DM Mono', monospace; font-size: 0.58rem; font-weight: 500;
+    padding: 2px 5px; border-radius: 3px; display: none;
+  }
+  .img-badge.show { display: block; }
+  .img-footer { padding: 7px 8px; display: flex; align-items: center; gap: 5px; }
+  .img-name { flex: 1; font-size: 0.65rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'DM Mono', monospace; }
+  .icon-btn {
+    width: 24px; height: 24px; border-radius: 5px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; display: flex; align-items: center;
+    justify-content: center; font-size: 0.7rem; transition: all 0.12s; flex-shrink: 0;
+  }
+  .icon-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--muted); }
+  .icon-btn.del:hover { color: var(--red); border-color: var(--red); }
+
+  .empty { grid-column: 1/-1; padding: 4rem 2rem; text-align: center; color: var(--muted); }
+  .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.25; }
+  .empty p { font-size: 0.8rem; line-height: 1.9; }
+
+  /* ── Editor Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+    z-index: 200; display: none; align-items: center; justify-content: center; padding: 1rem;
+  }
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: 100%; max-width: 960px;
+    max-height: 94vh;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  .modal-header {
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.875rem; flex-shrink: 0;
+  }
+  .modal-title { font-size: 0.85rem; font-weight: 700; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Brush mode toggle in header */
+  .mode-pills {
+    display: flex; gap: 3px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 7px; padding: 3px;
+  }
+  .mpill {
+    padding: 0.3rem 0.7rem; border-radius: 4px; font-family: 'Syne', sans-serif;
+    font-size: 0.72rem; font-weight: 600; cursor: pointer;
+    border: none; background: transparent; color: var(--muted); transition: all 0.12s;
+  }
+  .mpill.active { background: var(--accent); color: #0e0e0f; }
+
+  .modal-body {
+    flex: 1; overflow: auto; display: flex;
+    align-items: flex-start; justify-content: center;
+    padding: 1rem; background: #0a0a0b;
+    touch-action: none;
+  }
+
+  .canvas-container {
+    position: relative; display: inline-block;
+    line-height: 0;
+  }
+  #editorCanvas { display: block; max-width: 100%; }
+  #overlayCanvas {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    touch-action: none;
+  }
+
+  /* cursor circle indicator */
+  #cursorCircle {
+    position: absolute; border-radius: 50%;
+    border: 2px solid var(--accent);
+    pointer-events: none;
+    display: none;
+    transform: translate(-50%, -50%);
+    transition: width 0.05s, height 0.05s;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.5);
+  }
+
+  .modal-footer {
+    padding: 0.75rem 1.25rem; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.6rem;
+    flex-shrink: 0; flex-wrap: wrap;
+  }
+  .modal-footer .btn { width: auto; flex: 1; min-width: 90px; margin-bottom: 0; }
+  .mfinfo { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); flex: 1; min-width: 120px; }
+  .mfinfo span { color: var(--accent2); }
+
+  /* nav arrows */
+  .nav-btn {
+    padding: 0.35rem 0.7rem; border-radius: 6px; font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 0.8rem; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+    transition: all 0.12s;
+  }
+  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">BLUR<span>TOOL</span></div>
+  <div class="header-stats">
+    <div>Images: <span class="stat-val" id="hdrTotal">0</span></div>
+    <div>Edited: <span class="stat-val" id="hdrEdited">0</span></div>
+  </div>
+</header>
+
+<main>
+  <aside>
+    <div>
+      <div class="sec-label">Upload</div>
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">⬆</div>
+        <strong>Drop images here</strong>
+        <p>or click to browse<br>PNG · JPG · WebP</p>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+    </div>
+
+    <div>
+      <div class="sec-label">Brush Settings</div>
+      <div class="ctrl">
+        <label>Brush size <span id="brushSzDisplay">60</span>px</label>
+        <input type="range" id="brushSize" min="10" max="200" value="60">
+      </div>
+      <div class="ctrl">
+        <label>Blur strength <span id="blurStrDisplay">18</span></label>
+        <input type="range" id="blurStrength" min="4" max="50" value="18">
+      </div>
+      <div class="ctrl">
+        <label>Blur passes <span id="blurPassDisplay">3</span></label>
+        <input type="range" id="blurPasses" min="1" max="8" value="3">
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-label">Export</div>
+      <button class="btn btn-accent" id="downloadAllBtn" disabled>⬇ Download All (PNG)</button>
+      <button class="btn btn-green" id="downloadEditedBtn" disabled>⬇ Edited Only</button>
+      <button class="btn" id="resetAllBlurs" disabled>↺ Reset All Blurs</button>
+      <button class="btn btn-danger" id="clearAllBtn" disabled>✕ Clear All</button>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="sec-label">Exporting</div>
+      <div class="prog-bg"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-label" id="progLabel">…</div>
+    </div>
+  </aside>
+
+  <div class="content">
+    <div class="toolbar">
+      <div class="toolbar-hint">Click any image to <span>open editor</span> — paint to blur logos</div>
+      <button class="tbtn" id="selectAllBtn" disabled>Select All</button>
+      <button class="tbtn" id="removeSelectedBtn" disabled style="color:var(--red);border-color:var(--red)">Remove Selected</button>
+    </div>
+    <div class="grid-wrap">
+      <div class="img-grid" id="imgGrid">
+        <div class="empty">
+          <div class="empty-icon">🖼</div>
+          <p>Upload images via the sidebar.<br>Click an image to open the blur editor.<br>Paint circles over logos — download at full resolution.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Editor Modal -->
+<div class="modal-overlay" id="editorModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Edit</div>
+      <div class="mode-pills">
+        <button class="mpill active" id="modePaint" title="Paint blur with circular brush">🖌 Paint</button>
+        <button class="mpill" id="modeRect" title="Draw rectangle to blur">▭ Rect</button>
+      </div>
+      <button class="nav-btn" id="prevBtn">← Prev</button>
+      <button class="nav-btn" id="nextBtn">Next →</button>
+      <button class="icon-btn" id="closeModalBtn" style="width:auto;padding:0 10px;font-size:0.78rem;height:30px">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <div class="canvas-container" id="canvasContainer">
+        <canvas id="editorCanvas"></canvas>
+        <canvas id="overlayCanvas"></canvas>
+        <div id="cursorCircle"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="mfinfo" id="mfinfo">Mode: <span>Paint Blur</span></div>
+      <button class="btn" id="undoBtn">↩ Undo</button>
+      <button class="btn" id="clearBlurBtn">↺ Clear</button>
+      <button class="btn btn-danger" id="cancelBtn">Cancel</button>
+      <button class="btn btn-accent" id="applyBtn">✓ Apply & Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────
+const S = {
+  images: [],       // { file, img, src, blurCanvas, edited, thumb }
+  selected: new Set(),
+  editing: -1,
+  mode: 'paint',    // 'paint' | 'rect'
+  brushSize: 60,
+  blurStr: 18,
+  blurPasses: 3,
+};
+
+// Per-session undo stack (snapshots of blurCanvas ImageData)
+let undoStack = [];
+const MAX_UNDO = 30;
+
+// For paint mode
+let isPainting = false;
+
+// For rect mode
+let isRect = false, rx0=0, ry0=0, rx1=0, ry1=0;
+
+// Scale: preview canvas coords → original image coords
+let edScale = 1;
+
+// ─────────────────────────────────────────────
+//  DOM
+// ─────────────────────────────────────────────
+const dropzone       = document.getElementById('dropzone');
+const fileInput      = document.getElementById('fileInput');
+const imgGrid        = document.getElementById('imgGrid');
+const brushSizeRange = document.getElementById('brushSize');
+const blurStrRange   = document.getElementById('blurStrength');
+const blurPassRange  = document.getElementById('blurPasses');
+const brushSzDisplay = document.getElementById('brushSzDisplay');
+const blurStrDisplay = document.getElementById('blurStrDisplay');
+const blurPassDisplay= document.getElementById('blurPassDisplay');
+const downloadAllBtn = document.getElementById('downloadAllBtn');
+const downloadEditedBtn = document.getElementById('downloadEditedBtn');
+const resetAllBlurs  = document.getElementById('resetAllBlurs');
+const clearAllBtn    = document.getElementById('clearAllBtn');
+const selectAllBtn   = document.getElementById('selectAllBtn');
+const removeSelectedBtn = document.getElementById('removeSelectedBtn');
+const progressWrap   = document.getElementById('progressWrap');
+const progFill       = document.getElementById('progFill');
+const progLabel      = document.getElementById('progLabel');
+const editorModal    = document.getElementById('editorModal');
+const modalTitle     = document.getElementById('modalTitle');
+const editorCanvas   = document.getElementById('editorCanvas');
+const overlayCanvas  = document.getElementById('overlayCanvas');
+const cursorCircle   = document.getElementById('cursorCircle');
+const canvasContainer= document.getElementById('canvasContainer');
+const mfinfo         = document.getElementById('mfinfo');
+
+// ─────────────────────────────────────────────
+//  Upload
+// ─────────────────────────────────────────────
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('drag'); loadFiles(e.dataTransfer.files); });
+fileInput.addEventListener('change', () => { loadFiles(fileInput.files); fileInput.value=''; });
+
+function loadFiles(files) {
+  Array.from(files).forEach(f => {
+    if (!f.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        // blurCanvas stores the accumulated blur strokes at full resolution
+        const bc = document.createElement('canvas');
+        bc.width = img.width; bc.height = img.height;
+        const bctx = bc.getContext('2d');
+        bctx.drawImage(img, 0, 0);
+        S.images.push({ file: f, img, src: ev.target.result, blurCanvas: bc, edited: false, thumb: ev.target.result });
+        renderGrid(); updateStats(); updateBtns();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  Grid
+// ─────────────────────────────────────────────
+function renderGrid() {
+  if (!S.images.length) {
+    imgGrid.innerHTML = `<div class="empty"><div class="empty-icon">🖼</div><p>Upload images via the sidebar.<br>Click an image to open the blur editor.<br>Paint circles over logos — download at full resolution.</p></div>`;
+    return;
+  }
+  imgGrid.innerHTML = '';
+  S.images.forEach((im, idx) => {
+    const card = document.createElement('div');
+    card.className = 'img-card' + (S.selected.has(idx) ? ' selected' : '') + (im.edited ? ' edited' : '') + (S.editing === idx ? ' active' : '');
+    card.dataset.idx = idx;
+    card.innerHTML = `
+      <div class="img-thumb">
+        <img src="${im.thumb}" id="thumb${idx}" loading="lazy">
+        <div class="img-badge${im.edited ? ' show' : ''}" id="badge${idx}">BLURRED</div>
+      </div>
+      <div class="img-footer">
+        <div class="img-name" title="${im.file.name}">${im.file.name}</div>
+        <button class="icon-btn" title="Download" onclick="event.stopPropagation();downloadOne(${idx})">⬇</button>
+        <button class="icon-btn del" title="Remove" onclick="event.stopPropagation();removeImage(${idx})">✕</button>
+      </div>`;
+    card.addEventListener('click', () => openEditor(idx));
+    imgGrid.appendChild(card);
+  });
+}
+
+function removeImage(idx) {
+  S.images.splice(idx, 1);
+  S.selected.clear();
+  if (S.editing >= S.images.length) S.editing = -1;
+  renderGrid(); updateStats(); updateBtns();
+}
+
+function updateBtns() {
+  const n = S.images.length;
+  const edited = S.images.filter(i => i.edited).length;
+  downloadAllBtn.disabled    = n === 0;
+  downloadEditedBtn.disabled = edited === 0;
+  resetAllBlurs.disabled     = n === 0;
+  clearAllBtn.disabled       = n === 0;
+  selectAllBtn.disabled      = n === 0;
+  removeSelectedBtn.disabled = S.selected.size === 0;
+}
+
+function updateStats() {
+  document.getElementById('hdrTotal').textContent  = S.images.length;
+  document.getElementById('hdrEdited').textContent = S.images.filter(i => i.edited).length;
+}
+
+// ─────────────────────────────────────────────
+//  Controls
+// ─────────────────────────────────────────────
+brushSizeRange.addEventListener('input', () => { S.brushSize = +brushSizeRange.value; brushSzDisplay.textContent = S.brushSize; updateCursorSize(); });
+blurStrRange.addEventListener('input', () => { S.blurStr = +blurStrRange.value; blurStrDisplay.textContent = S.blurStr; });
+blurPassRange.addEventListener('input', () => { S.blurPasses = +blurPassRange.value; blurPassDisplay.textContent = S.blurPasses; });
+
+selectAllBtn.addEventListener('click', () => {
+  if (S.selected.size === S.images.length) S.selected.clear();
+  else S.images.forEach((_, i) => S.selected.add(i));
+  renderGrid(); updateBtns();
+});
+removeSelectedBtn.addEventListener('click', () => {
+  [...S.selected].sort((a,b)=>b-a).forEach(i => S.images.splice(i, 1));
+  S.selected.clear(); renderGrid(); updateStats(); updateBtns();
+});
+resetAllBlurs.addEventListener('click', () => {
+  S.images.forEach(im => {
+    im.edited = false; im.thumb = im.src;
+    const bc = im.blurCanvas;
+    bc.getContext('2d').drawImage(im.img, 0, 0);
+  });
+  renderGrid(); updateStats(); updateBtns();
+});
+clearAllBtn.addEventListener('click', () => {
+  if (!confirm('Remove all images?')) return;
+  S.images = []; S.selected.clear(); S.editing = -1;
+  renderGrid(); updateStats(); updateBtns();
+});
+
+// ─────────────────────────────────────────────
+//  Blur Engine
+// ─────────────────────────────────────────────
+function boxBlurPass(data, w, h, r) {
+  const tmp = new Uint8ClampedArray(data.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let rs=0,gs=0,bs=0,cnt=0;
+      for (let dx=-r; dx<=r; dx++) {
+        const nx = Math.min(w-1, Math.max(0, x+dx));
+        const i = (y*w+nx)*4;
+        rs+=data[i]; gs+=data[i+1]; bs+=data[i+2]; cnt++;
+      }
+      const o=(y*w+x)*4;
+      tmp[o]=rs/cnt; tmp[o+1]=gs/cnt; tmp[o+2]=bs/cnt; tmp[o+3]=data[o+3];
+    }
+  }
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < h; y++) {
+      let rs=0,gs=0,bs=0,cnt=0;
+      for (let dy=-r; dy<=r; dy++) {
+        const ny = Math.min(h-1, Math.max(0, y+dy));
+        const i = (ny*w+x)*4;
+        rs+=tmp[i]; gs+=tmp[i+1]; bs+=tmp[i+2]; cnt++;
+      }
+      const o=(y*w+x)*4;
+      data[o]=rs/cnt; data[o+1]=gs/cnt; data[o+2]=bs/cnt;
+    }
+  }
+}
+
+// Apply circular blur at position (cx,cy) with given radius on a canvas context
+function applyCircleBlur(ctx, cx, cy, radius, strength, passes) {
+  const r = Math.ceil(radius);
+  const x0 = Math.max(0, Math.floor(cx - r));
+  const y0 = Math.max(0, Math.floor(cy - r));
+  const x1 = Math.min(ctx.canvas.width,  Math.ceil(cx + r));
+  const y1 = Math.min(ctx.canvas.height, Math.ceil(cy + r));
+  const bw = x1 - x0, bh = y1 - y0;
+  if (bw < 2 || bh < 2) return;
+
+  // Get bounding box pixels
+  const imageData = ctx.getImageData(x0, y0, bw, bh);
+  const blurred = new Uint8ClampedArray(imageData.data);
+  const blurRad = Math.max(1, Math.round(strength));
+  // Run box blur on copy
+  const tmp = new ImageData(blurred, bw, bh);
+  for (let p = 0; p < passes; p++) boxBlurPass(tmp.data, bw, bh, blurRad);
+
+  // Write back only pixels inside circle
+  const orig = imageData.data;
+  const dest = tmp.data;
+  for (let py = 0; py < bh; py++) {
+    for (let px = 0; px < bw; px++) {
+      const dx = (x0 + px) - cx;
+      const dy = (y0 + py) - cy;
+      if (dx*dx + dy*dy <= r*r) {
+        const i = (py*bw + px)*4;
+        orig[i]   = dest[i];
+        orig[i+1] = dest[i+1];
+        orig[i+2] = dest[i+2];
+      }
+    }
+  }
+  ctx.putImageData(imageData, x0, y0);
+}
+
+// Apply rect blur
+function applyRectBlur(ctx, rx, ry, rw, rh, strength, passes) {
+  if (rw < 2 || rh < 2) return;
+  const imageData = ctx.getImageData(rx, ry, rw, rh);
+  const r = Math.max(1, Math.round(strength));
+  for (let p = 0; p < passes; p++) boxBlurPass(imageData.data, rw, rh, r);
+  ctx.putImageData(imageData, rx, ry);
+}
+
+// ─────────────────────────────────────────────
+//  Editor
+// ─────────────────────────────────────────────
+function openEditor(idx) {
+  S.editing = idx;
+  undoStack = [];
+
+  const im = S.images[idx];
+  const maxW = Math.min(window.innerWidth - 40, 920);
+  const maxH = window.innerHeight - 200;
+  edScale = Math.min(1, maxW / im.img.width, maxH / im.img.height);
+
+  const W = Math.floor(im.img.width  * edScale);
+  const H = Math.floor(im.img.height * edScale);
+
+  editorCanvas.width = W; editorCanvas.height = H;
+  overlayCanvas.width = W; overlayCanvas.height = H;
+  overlayCanvas.style.width  = W + 'px';
+  overlayCanvas.style.height = H + 'px';
+
+  // Draw the blurCanvas (which contains all accumulated blurs) scaled to preview
+  syncEditorFromBlurCanvas();
+
+  modalTitle.textContent = `${im.file.name}  (${im.img.width}×${im.img.height}px)`;
+  editorModal.classList.add('show');
+  attachCanvasEvents();
+  renderGrid(); // highlight active card
+}
+
+function syncEditorFromBlurCanvas() {
+  const im = S.images[S.editing];
+  const ctx = editorCanvas.getContext('2d');
+  ctx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
+  ctx.drawImage(im.blurCanvas, 0, 0, editorCanvas.width, editorCanvas.height);
+}
+
+function saveUndo() {
+  const im = S.images[S.editing];
+  const ctx = im.blurCanvas.getContext('2d');
+  const snap = ctx.getImageData(0, 0, im.blurCanvas.width, im.blurCanvas.height);
+  undoStack.push(snap);
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+}
+
+function getCanvasPos(e) {
+  const rect = overlayCanvas.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
+  const clientX = touch.clientX;
+  const clientY = touch.clientY;
+  // Canvas logical coords
+  const scaleX = overlayCanvas.width  / rect.width;
+  const scaleY = overlayCanvas.height / rect.height;
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top)  * scaleY,
+    clientX, clientY, rect
+  };
+}
+
+function updateCursorSize() {
+  const sz = (S.brushSize / edScale) * (overlayCanvas.getBoundingClientRect().width / overlayCanvas.width);
+  // brushSize is in preview pixels; show circle accordingly
+  const displaySz = S.brushSize * (overlayCanvas.getBoundingClientRect().width / overlayCanvas.width);
+  cursorCircle.style.width  = displaySz * 2 + 'px';
+  cursorCircle.style.height = displaySz * 2 + 'px';
+}
+
+// overlay for rect mode
+let overlayAnim = null;
+function drawRectOverlay(x0, y0, x1, y1) {
+  const oc = overlayCanvas.getContext('2d');
+  oc.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  const rx = Math.min(x0,x1), ry = Math.min(y0,y1);
+  const rw = Math.abs(x1-x0), rh = Math.abs(y1-y0);
+  oc.strokeStyle = 'rgba(232,255,71,0.9)';
+  oc.lineWidth = 1.5;
+  oc.setLineDash([5,3]);
+  oc.strokeRect(rx+0.5, ry+0.5, rw, rh);
+  oc.fillStyle = 'rgba(232,255,71,0.08)';
+  oc.fillRect(rx, ry, rw, rh);
+}
+
+function clearOverlay() {
+  const oc = overlayCanvas.getContext('2d');
+  oc.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+}
+
+function attachCanvasEvents() {
+  overlayCanvas.onmousedown  = overlayCanvas.ontouchstart  = onStart;
+  overlayCanvas.onmousemove  = overlayCanvas.ontouchmove   = onMove;
+  overlayCanvas.onmouseup    = overlayCanvas.ontouchend    = onEnd;
+  overlayCanvas.onmouseleave = () => { cursorCircle.style.display = 'none'; };
+  overlayCanvas.onmouseenter = () => { if (S.mode === 'paint') cursorCircle.style.display = 'block'; };
+
+  overlayCanvas.addEventListener('mousemove', moveCursor);
+}
+
+function moveCursor(e) {
+  if (S.mode !== 'paint') { cursorCircle.style.display = 'none'; return; }
+  cursorCircle.style.display = 'block';
+  const rect = canvasContainer.getBoundingClientRect();
+  cursorCircle.style.left = (e.clientX - rect.left) + 'px';
+  cursorCircle.style.top  = (e.clientY - rect.top)  + 'px';
+  updateCursorSize();
+}
+
+function onStart(e) {
+  e.preventDefault();
+  const p = getCanvasPos(e);
+  if (S.mode === 'paint') {
+    saveUndo();
+    isPainting = true;
+    paintBlurAt(p.x, p.y);
+  } else {
+    isRect = true;
+    rx0 = p.x; ry0 = p.y; rx1 = p.x; ry1 = p.y;
+  }
+}
+
+function onMove(e) {
+  e.preventDefault();
+  const p = getCanvasPos(e);
+  if (S.mode === 'paint') {
+    // move cursor circle
+    if (e.touches) {
+      const rect = canvasContainer.getBoundingClientRect();
+      cursorCircle.style.display = 'block';
+      cursorCircle.style.left = (e.touches[0].clientX - rect.left) + 'px';
+      cursorCircle.style.top  = (e.touches[0].clientY - rect.top)  + 'px';
+      updateCursorSize();
+    }
+    if (isPainting) paintBlurAt(p.x, p.y);
+  } else if (isRect) {
+    rx1 = p.x; ry1 = p.y;
+    drawRectOverlay(rx0, ry0, rx1, ry1);
+  }
+}
+
+function onEnd(e) {
+  e.preventDefault();
+  if (S.mode === 'paint') {
+    isPainting = false;
+  } else if (isRect) {
+    isRect = false;
+    clearOverlay();
+    const p = getCanvasPos(e);
+    rx1 = p.x; ry1 = p.y;
+    const rw = Math.abs(rx1-rx0), rh = Math.abs(ry1-ry0);
+    if (rw > 5 && rh > 5) {
+      saveUndo();
+      // Apply to blurCanvas at full res
+      const invS = 1 / edScale;
+      const bx = Math.round(Math.min(rx0,rx1) * invS);
+      const by = Math.round(Math.min(ry0,ry1) * invS);
+      const bw = Math.round(rw * invS);
+      const bh = Math.round(rh * invS);
+      const im = S.images[S.editing];
+      const bctx = im.blurCanvas.getContext('2d');
+      applyRectBlur(bctx, bx, by, bw, bh, S.blurStr * 2, S.blurPasses);
+      syncEditorFromBlurCanvas();
+    }
+  }
+}
+
+function paintBlurAt(px, py) {
+  // px,py in preview canvas coords
+  // Apply to blurCanvas at full resolution
+  const im = S.images[S.editing];
+  const bctx = im.blurCanvas.getContext('2d');
+  const invS = 1 / edScale;
+  const fullX = px * invS;
+  const fullY = py * invS;
+  const fullR = S.brushSize * invS;
+  applyCircleBlur(bctx, fullX, fullY, fullR, S.blurStr * 1.5, S.blurPasses);
+  // Sync to preview
+  syncEditorFromBlurCanvas();
+}
+
+// ─────────────────────────────────────────────
+//  Mode toggle
+// ─────────────────────────────────────────────
+document.getElementById('modePaint').addEventListener('click', () => {
+  S.mode = 'paint';
+  document.getElementById('modePaint').classList.add('active');
+  document.getElementById('modeRect').classList.remove('active');
+  mfinfo.innerHTML = 'Mode: <span>Paint Blur — click & drag to paint</span>';
+  cursorCircle.style.display = 'none';
+  clearOverlay();
+});
+document.getElementById('modeRect').addEventListener('click', () => {
+  S.mode = 'rect';
+  document.getElementById('modeRect').classList.add('active');
+  document.getElementById('modePaint').classList.remove('active');
+  mfinfo.innerHTML = 'Mode: <span>Rect Blur — draw a rectangle to blur</span>';
+  cursorCircle.style.display = 'none';
+});
+
+// ─────────────────────────────────────────────
+//  Editor footer buttons
+// ─────────────────────────────────────────────
+document.getElementById('undoBtn').addEventListener('click', () => {
+  if (!undoStack.length) return;
+  const snap = undoStack.pop();
+  const im = S.images[S.editing];
+  im.blurCanvas.getContext('2d').putImageData(snap, 0, 0);
+  syncEditorFromBlurCanvas();
+});
+
+document.getElementById('clearBlurBtn').addEventListener('click', () => {
+  if (!confirm('Clear all blur on this image?')) return;
+  saveUndo();
+  const im = S.images[S.editing];
+  im.blurCanvas.getContext('2d').drawImage(im.img, 0, 0);
+  syncEditorFromBlurCanvas();
+});
+
+document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+document.getElementById('cancelBtn').addEventListener('click', () => {
+  // Revert blurCanvas to original if not applied
+  closeModal();
+});
+
+document.getElementById('applyBtn').addEventListener('click', () => {
+  const idx = S.editing;
+  const im = S.images[idx];
+  // Check if anything was changed (compare vs original src)
+  im.edited = true;
+  // Thumbnail: scale blurCanvas down
+  const thumbCanvas = document.createElement('canvas');
+  const tw = 320, th = Math.round(320 * im.img.height / im.img.width);
+  thumbCanvas.width = tw; thumbCanvas.height = th;
+  thumbCanvas.getContext('2d').drawImage(im.blurCanvas, 0, 0, tw, th);
+  im.thumb = thumbCanvas.toDataURL('image/jpeg', 0.85);
+  closeModal();
+  renderGrid(); updateStats(); updateBtns();
+});
+
+// Navigation
+document.getElementById('prevBtn').addEventListener('click', () => {
+  if (S.editing > 0) openEditor(S.editing - 1);
+});
+document.getElementById('nextBtn').addEventListener('click', () => {
+  if (S.editing < S.images.length - 1) openEditor(S.editing + 1);
+});
+// Update nav btn state when modal opens
+function updateNavBtns() {
+  document.getElementById('prevBtn').disabled = S.editing <= 0;
+  document.getElementById('nextBtn').disabled = S.editing >= S.images.length - 1;
+}
+
+const _openEditor = openEditor;
+openEditor = idx => {
+  _openEditor(idx);
+  updateNavBtns();
+};
+
+function closeModal() {
+  editorModal.classList.remove('show');
+  overlayCanvas.onmousedown = overlayCanvas.onmousemove = overlayCanvas.onmouseup = null;
+  overlayCanvas.ontouchstart = overlayCanvas.ontouchmove = overlayCanvas.ontouchend = null;
+  overlayCanvas.onmouseleave = overlayCanvas.onmouseenter = null;
+  cursorCircle.style.display = 'none';
+  isPainting = false; isRect = false;
+}
+
+// ─────────────────────────────────────────────
+//  Export
+// ─────────────────────────────────────────────
+function downloadOne(idx) {
+  const im = S.images[idx];
+  // blurCanvas IS the full-res edited canvas
+  const name = im.file.name.replace(/\.[^.]+$/, '') + '-blurred.png';
+  im.blurCanvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, 'image/png');
+}
+
+async function downloadBatch(indices) {
+  progressWrap.style.display = 'block';
+  progFill.style.width = '0%';
+  for (let i = 0; i < indices.length; i++) {
+    const idx = indices[i];
+    progLabel.textContent = `${i+1}/${indices.length}: ${S.images[idx].file.name}`;
+    progFill.style.width = ((i+1)/indices.length*100) + '%';
+    await new Promise(r => setTimeout(r, 100));
+    downloadOne(idx);
+  }
+  progLabel.textContent = `✓ Done — ${indices.length} file${indices.length!==1?'s':''} downloaded`;
+  setTimeout(() => { progressWrap.style.display = 'none'; }, 3000);
+}
+
+downloadAllBtn.addEventListener('click', () => downloadBatch(S.images.map((_,i)=>i)));
+downloadEditedBtn.addEventListener('click', () => {
+  downloadBatch(S.images.map((im,i)=>im.edited?i:-1).filter(i=>i>=0));
+});
+</script>
+</body>
+</html>
