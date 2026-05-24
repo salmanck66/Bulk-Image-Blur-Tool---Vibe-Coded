@@ -284,6 +284,47 @@
   }
   .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
   .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ── In-editor brush panel ── */
+  .brush-panel {
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    padding: 0.65rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .brush-panel .sec-label { margin-bottom: 0; white-space: nowrap; }
+  .bp-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 140px;
+  }
+  .bp-group label {
+    font-size: 0.68rem;
+    color: var(--muted);
+    white-space: nowrap;
+    font-family: 'DM Mono', monospace;
+  }
+  .bp-group label b { color: var(--accent); font-weight: 500; }
+  .bp-group input[type=range] { flex: 1; min-width: 60px; }
+  .bp-sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+  .bp-pills {
+    display: flex; gap: 3px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px; flex-shrink: 0;
+  }
+  .bp-pill {
+    padding: 0.25rem 0.6rem; border-radius: 3px;
+    font-family: 'Syne', sans-serif; font-size: 0.68rem; font-weight: 600;
+    cursor: pointer; border: none; background: transparent;
+    color: var(--muted); transition: all 0.12s;
+  }
+  .bp-pill.active { background: var(--accent); color: #0e0e0f; }
 </style>
 </head>
 <body>
@@ -376,6 +417,37 @@
         <div id="cursorCircle"></div>
       </div>
     </div>
+    <!-- In-editor brush controls -->
+    <div class="brush-panel">
+      <div class="sec-label">Brush</div>
+
+      <div class="bp-pills">
+        <button class="bp-pill active" id="edModePaint">🖌 Paint</button>
+        <button class="bp-pill" id="edModeRect">▭ Rect</button>
+      </div>
+
+      <div class="bp-sep"></div>
+
+      <div class="bp-group">
+        <label>Size&nbsp;<b id="edBrushSzVal">60</b>px</label>
+        <input type="range" id="edBrushSize" min="10" max="300" value="60">
+      </div>
+
+      <div class="bp-sep"></div>
+
+      <div class="bp-group">
+        <label>Strength&nbsp;<b id="edBlurStrVal">18</b></label>
+        <input type="range" id="edBlurStr" min="4" max="50" value="18">
+      </div>
+
+      <div class="bp-sep"></div>
+
+      <div class="bp-group">
+        <label>Passes&nbsp;<b id="edBlurPassVal">3</b></label>
+        <input type="range" id="edBlurPass" min="1" max="8" value="3">
+      </div>
+    </div>
+
     <div class="modal-footer">
       <div class="mfinfo" id="mfinfo">Mode: <span>Paint Blur</span></div>
       <button class="btn" id="undoBtn">↩ Undo</button>
@@ -526,9 +598,7 @@ function updateStats() {
 // ─────────────────────────────────────────────
 //  Controls
 // ─────────────────────────────────────────────
-brushSizeRange.addEventListener('input', () => { S.brushSize = +brushSizeRange.value; brushSzDisplay.textContent = S.brushSize; updateCursorSize(); });
-blurStrRange.addEventListener('input', () => { S.blurStr = +blurStrRange.value; blurStrDisplay.textContent = S.blurStr; });
-blurPassRange.addEventListener('input', () => { S.blurPasses = +blurPassRange.value; blurPassDisplay.textContent = S.blurPasses; });
+// Slider listeners are set up after the mode toggle section below
 
 selectAllBtn.addEventListener('click', () => {
   if (S.selected.size === S.images.length) S.selected.clear();
@@ -808,22 +878,58 @@ function paintBlurAt(px, py) {
 }
 
 // ─────────────────────────────────────────────
-//  Mode toggle
+//  Mode toggle (header pills + editor panel pills — kept in sync)
 // ─────────────────────────────────────────────
-document.getElementById('modePaint').addEventListener('click', () => {
-  S.mode = 'paint';
-  document.getElementById('modePaint').classList.add('active');
-  document.getElementById('modeRect').classList.remove('active');
-  mfinfo.innerHTML = 'Mode: <span>Paint Blur — click & drag to paint</span>';
+function setMode(mode) {
+  S.mode = mode;
+  // Header pills
+  document.getElementById('modePaint').classList.toggle('active', mode === 'paint');
+  document.getElementById('modeRect').classList.toggle('active', mode === 'rect');
+  // Editor panel pills
+  document.getElementById('edModePaint').classList.toggle('active', mode === 'paint');
+  document.getElementById('edModeRect').classList.toggle('active', mode === 'rect');
+  mfinfo.innerHTML = mode === 'paint'
+    ? 'Mode: <span>Paint Blur — click & drag to paint</span>'
+    : 'Mode: <span>Rect Blur — draw a rectangle to blur</span>';
   cursorCircle.style.display = 'none';
-  clearOverlay();
+  if (mode === 'rect') clearOverlay();
+}
+
+document.getElementById('modePaint').addEventListener('click', () => setMode('paint'));
+document.getElementById('modeRect').addEventListener('click',  () => setMode('rect'));
+document.getElementById('edModePaint').addEventListener('click', () => setMode('paint'));
+document.getElementById('edModeRect').addEventListener('click',  () => setMode('rect'));
+
+// Helper: sync both sidebar + editor panel sliders + displays
+function syncSlider(value, globalKey, sidebarEl, sidebarDisplay, editorEl, editorDisplay) {
+  S[globalKey] = value;
+  sidebarEl.value = value;
+  sidebarDisplay.textContent = value;
+  editorEl.value = value;
+  editorDisplay.textContent = value;
+  if (globalKey === 'brushSize') updateCursorSize();
+}
+
+// Sidebar sliders → update both
+brushSizeRange.addEventListener('input', () =>
+  syncSlider(+brushSizeRange.value, 'brushSize', brushSizeRange, brushSzDisplay,
+    document.getElementById('edBrushSize'), document.getElementById('edBrushSzVal')));
+blurStrRange.addEventListener('input', () =>
+  syncSlider(+blurStrRange.value, 'blurStr', blurStrRange, blurStrDisplay,
+    document.getElementById('edBlurStr'), document.getElementById('edBlurStrVal')));
+blurPassRange.addEventListener('input', () =>
+  syncSlider(+blurPassRange.value, 'blurPasses', blurPassRange, blurPassDisplay,
+    document.getElementById('edBlurPass'), document.getElementById('edBlurPassVal')));
+
+// Editor panel sliders → update both
+document.getElementById('edBrushSize').addEventListener('input', function() {
+  syncSlider(+this.value, 'brushSize', brushSizeRange, brushSzDisplay, this, document.getElementById('edBrushSzVal'));
 });
-document.getElementById('modeRect').addEventListener('click', () => {
-  S.mode = 'rect';
-  document.getElementById('modeRect').classList.add('active');
-  document.getElementById('modePaint').classList.remove('active');
-  mfinfo.innerHTML = 'Mode: <span>Rect Blur — draw a rectangle to blur</span>';
-  cursorCircle.style.display = 'none';
+document.getElementById('edBlurStr').addEventListener('input', function() {
+  syncSlider(+this.value, 'blurStr', blurStrRange, blurStrDisplay, this, document.getElementById('edBlurStrVal'));
+});
+document.getElementById('edBlurPass').addEventListener('input', function() {
+  syncSlider(+this.value, 'blurPasses', blurPassRange, blurPassDisplay, this, document.getElementById('edBlurPassVal'));
 });
 
 // ─────────────────────────────────────────────
