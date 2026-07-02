@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Logo Blur Tool</title>
+<title>ClearCut Studio — AI Background Removal, Logo Blur &amp; Image Optimizer</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
 
@@ -22,12 +22,15 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  html, body { height: 100%; }
   body {
     background: var(--bg);
     color: var(--text);
     font-family: 'Syne', sans-serif;
     min-height: 100vh;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   header {
@@ -39,23 +42,43 @@
     background: var(--bg);
     z-index: 50;
     height: 54px;
+    flex-shrink: 0;
   }
-  .logo { font-size: 1rem; font-weight: 800; letter-spacing: -0.03em; }
+  .logo { font-size: 1rem; font-weight: 800; letter-spacing: -0.03em; display: flex; align-items: center; gap: 8px; }
   .logo span { color: var(--accent); }
+  .logo .tag { font-family: 'DM Mono', monospace; font-size: 0.6rem; font-weight: 400; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; border-left: 1px solid var(--border); padding-left: 8px; }
   .header-stats {
     font-family: 'DM Mono', monospace;
     font-size: 0.7rem;
     color: var(--muted);
     display: flex;
     gap: 1.25rem;
+    align-items: center;
   }
   .stat-val { color: var(--accent); }
+  .model-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .model-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  .model-badge.ready { color: var(--green); border-color: rgba(68,255,136,0.3); }
+  .model-badge.ready .dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .model-badge.loading { color: var(--accent); border-color: rgba(232,255,71,0.3); }
+  .model-badge.loading .dot { background: var(--accent); animation: pulse 1s infinite; }
+  .model-badge.error { color: var(--red); border-color: rgba(255,68,68,0.3); }
+  .model-badge.error .dot { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-  main { display: flex; height: calc(100vh - 54px); }
+  main { display: flex; flex: 1; min-height: 0; }
 
   /* ── Sidebar ── */
   aside {
-    width: 260px;
+    width: 270px;
     flex-shrink: 0;
     border-right: 1px solid var(--border);
     display: flex;
@@ -121,22 +144,37 @@
     transition: all 0.15s; width: 100%; margin-bottom: 5px;
   }
   .btn:last-child { margin-bottom: 0; }
-  .btn:hover { background: var(--surface2); border-color: var(--muted); }
+  .btn:hover:not(:disabled) { background: var(--surface2); border-color: var(--muted); }
   .btn:disabled { opacity: 0.3; cursor: not-allowed; }
   .btn-accent { background: var(--accent); color: #0e0e0f; border-color: transparent; }
-  .btn-accent:hover { background: #d4e83e; }
+  .btn-accent:hover:not(:disabled) { background: #d4e83e; }
   .btn-danger { border-color: var(--red); color: var(--red); }
-  .btn-danger:hover { background: rgba(255,68,68,0.08); }
+  .btn-danger:hover:not(:disabled) { background: rgba(255,68,68,0.08); }
   .btn-green { border-color: var(--green); color: var(--green); }
-  .btn-green:hover { background: rgba(68,255,136,0.06); }
+  .btn-green:hover:not(:disabled) { background: rgba(68,255,136,0.06); }
 
   .progress-wrap { display: none; }
   .prog-bg { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
   .prog-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.2s; }
   .prog-label { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted); margin-top: 5px; }
 
+  select.selstyle {
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  .hint-text { font-size: 0.68rem; color: var(--muted); line-height: 1.55; margin-top: 4px; }
+  .hint-text.warn { color: var(--accent2); }
+
   /* ── Grid ── */
-  .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
   .toolbar {
     padding: 0.6rem 1.25rem;
@@ -152,7 +190,7 @@
     border: 1px solid var(--border); background: transparent; color: var(--muted);
     transition: all 0.12s;
   }
-  .tbtn:hover { color: var(--text); border-color: var(--muted); }
+  .tbtn:hover:not(:disabled) { color: var(--text); border-color: var(--muted); }
   .tbtn:disabled { opacity: 0.3; cursor: not-allowed; }
 
   .grid-wrap { flex: 1; overflow-y: auto; padding: 1.25rem; }
@@ -176,8 +214,17 @@
   .img-card:hover { border-color: var(--muted); }
   .img-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .img-card.edited { border-color: rgba(232,255,71,0.35); }
+  .img-card.selected { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2); }
 
-  .img-thumb { position: relative; aspect-ratio: 1; overflow: hidden; background: #111; }
+  .img-thumb { position: relative; aspect-ratio: 1; overflow: hidden; background: #111;
+    background-image:
+      linear-gradient(45deg, #1c1c1e 25%, transparent 25%),
+      linear-gradient(-45deg, #1c1c1e 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #1c1c1e 75%),
+      linear-gradient(-45deg, transparent 75%, #1c1c1e 75%);
+    background-size: 14px 14px;
+    background-position: 0 0, 0 7px, 7px -7px, -7px 0px;
+  }
   .img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
   .img-badge {
     position: absolute; top: 5px; right: 5px;
@@ -186,6 +233,15 @@
     padding: 2px 5px; border-radius: 3px; display: none;
   }
   .img-badge.show { display: block; }
+  .img-check {
+    position: absolute; top: 5px; left: 5px; width: 20px; height: 20px;
+    border-radius: 5px; border: 1.5px solid rgba(255,255,255,0.55);
+    background: rgba(14,14,15,0.55); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.68rem; color: transparent; transition: all 0.12s;
+  }
+  .img-check:hover { border-color: var(--accent); }
+  .img-check.checked { background: var(--accent2); border-color: var(--accent2); color: #0e0e0f; }
   .img-footer { padding: 7px 8px; display: flex; align-items: center; gap: 5px; }
   .img-name { flex: 1; font-size: 0.65rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'DM Mono', monospace; }
   .icon-btn {
@@ -224,7 +280,6 @@
   }
   .modal-title { font-size: 0.85rem; font-weight: 700; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  /* Brush mode toggle in header */
   .mode-pills {
     display: flex; gap: 3px;
     background: var(--surface2); border: 1px solid var(--border);
@@ -242,11 +297,20 @@
     align-items: flex-start; justify-content: center;
     padding: 1rem; background: #0a0a0b;
     touch-action: none;
+    position: relative;
   }
 
   .canvas-container {
     position: relative; display: inline-block;
     line-height: 0;
+    background-image:
+      linear-gradient(45deg, #333 25%, transparent 25%),
+      linear-gradient(-45deg, #333 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #333 75%),
+      linear-gradient(-45deg, transparent 75%, #333 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    background-color: #222;
   }
   #editorCanvas { display: block; max-width: 100%; }
   #overlayCanvas {
@@ -255,7 +319,6 @@
     touch-action: none;
   }
 
-  /* cursor circle indicator */
   #cursorCircle {
     position: absolute; border-radius: 50%;
     border: 2px solid var(--accent);
@@ -264,6 +327,23 @@
     transform: translate(-50%, -50%);
     transition: width 0.05s, height 0.05s;
     box-shadow: 0 0 0 1px rgba(0,0,0,0.5);
+  }
+
+  #brushSizeHUD {
+    position: absolute;
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: rgba(14,14,15,0.85);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 500;
+    pointer-events: none;
+    display: none;
+    transform: translate(-50%, -140%);
+    white-space: nowrap;
+    z-index: 5;
   }
 
   .modal-footer {
@@ -275,18 +355,16 @@
   .mfinfo { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); flex: 1; min-width: 120px; }
   .mfinfo span { color: var(--accent2); }
 
-  /* nav arrows */
   .nav-btn {
     padding: 0.35rem 0.7rem; border-radius: 6px; font-family: 'Syne', sans-serif;
     font-weight: 700; font-size: 0.8rem; cursor: pointer;
     border: 1px solid var(--border); background: var(--surface2); color: var(--text);
     transition: all 0.12s;
   }
-  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
   .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-  /* ── In-editor brush panel ── */
-  .brush-panel {
+  .brush-panel, .bg-panel {
     background: var(--surface2);
     border-top: 1px solid var(--border);
     padding: 0.65rem 1.25rem;
@@ -296,7 +374,7 @@
     flex-shrink: 0;
     flex-wrap: wrap;
   }
-  .brush-panel .sec-label { margin-bottom: 0; white-space: nowrap; }
+  .brush-panel .sec-label, .bg-panel .sec-label { margin-bottom: 0; white-space: nowrap; }
   .bp-group {
     display: flex;
     align-items: center;
@@ -313,25 +391,82 @@
   .bp-group label b { color: var(--accent); font-weight: 500; }
   .bp-group input[type=range] { flex: 1; min-width: 60px; }
   .bp-sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
-  .bp-pills {
-    display: flex; gap: 3px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 6px; padding: 3px; flex-shrink: 0;
+  .bg-status { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); flex: 1; min-width: 140px; }
+  .bg-status span { color: var(--accent2); }
+
+  /* ── Global loading overlay — keeps heavy async work (model download / inference)
+       from looking like a frozen page ── */
+  #globalLoader {
+    position: fixed; inset: 0; z-index: 800;
+    background: rgba(10,10,11,0.72);
+    backdrop-filter: blur(2px);
+    display: none;
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px;
+    pointer-events: none;
   }
-  .bp-pill {
-    padding: 0.25rem 0.6rem; border-radius: 3px;
-    font-family: 'Syne', sans-serif; font-size: 0.68rem; font-weight: 600;
-    cursor: pointer; border: none; background: transparent;
-    color: var(--muted); transition: all 0.12s;
+  #globalLoader.show { display: flex; }
+  #globalLoader.blocking { pointer-events: all; }
+  .gl-spinner {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    animation: glspin 0.8s linear infinite;
   }
-  .bp-pill.active { background: var(--accent); color: #0e0e0f; }
+  @keyframes glspin { to { transform: rotate(360deg); } }
+  .gl-text {
+    font-family: 'DM Mono', monospace; font-size: 0.78rem;
+    color: var(--text); background: var(--surface2);
+    border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px;
+    max-width: 80vw; text-align: center;
+  }
+  .gl-sub { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted); }
+
+  /* Inline loading spinner shown inside the editor canvas while a heavy op runs there */
+  .canvas-busy {
+    position: absolute; inset: 0; z-index: 6;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(10,10,11,0.45);
+  }
+  .canvas-busy.show { display: flex; }
+
+  /* ── Toasts ── */
+  #toastStack {
+    position: fixed; bottom: 54px; right: 16px; z-index: 500;
+    display: flex; flex-direction: column-reverse; gap: 8px;
+    pointer-events: none;
+  }
+  .toast {
+    font-family: 'DM Mono', monospace; font-size: 0.72rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    color: var(--text); padding: 0.6rem 0.9rem; border-radius: 8px;
+    max-width: 320px; box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    animation: toastIn 0.2s ease-out;
+  }
+  .toast.error { border-left-color: var(--red); }
+  .toast.success { border-left-color: var(--green); }
+  @keyframes toastIn { from { opacity:0; transform: translateY(6px);} to {opacity:1; transform:translateY(0);} }
+
+  /* ── Footer ── */
+  footer {
+    flex-shrink: 0;
+    height: 34px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: 0.68rem;
+    color: var(--muted); background: var(--bg); gap: 6px;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">BLUR<span>TOOL</span></div>
+  <div class="logo">CLEAR<span>CUT</span> <span class="tag">Studio</span></div>
   <div class="header-stats">
+    <div class="model-badge" id="modelBadge"><span class="dot"></span><span id="modelBadgeText">AI model: idle</span></div>
     <div>Images: <span class="stat-val" id="hdrTotal">0</span></div>
     <div>Edited: <span class="stat-val" id="hdrEdited">0</span></div>
   </div>
@@ -363,18 +498,46 @@
         <label>Blur passes <span id="blurPassDisplay">3</span></label>
         <input type="range" id="blurPasses" min="1" max="8" value="3">
       </div>
+      <div class="hint-text">Tip: scroll the mouse wheel over the canvas to resize the brush.</div>
+    </div>
+
+    <div>
+      <div class="sec-label">AI Background Removal</div>
+      <button class="btn" id="removeBgSelectedBtn" disabled>Remove Background — Selected</button>
+      <button class="btn btn-accent" id="bulkBgAllBtn" disabled>Remove Background — All Images</button>
+      <button class="btn" id="preloadModelBtn">🔄 Preload AI Model</button>
+      <div class="hint-text" id="bgCacheStatus">Model not loaded yet.</div>
+      <div class="hint-text warn">Needs an internet connection and this page served over http(s) — it won't work opened directly as a local file. First run downloads the model, which can take a while.</div>
+    </div>
+
+    <div>
+      <div class="sec-label">Optimize</div>
+      <div class="ctrl">
+        <label>Format</label>
+        <select class="selstyle" id="optFormat">
+          <option value="image/webp">WebP (smallest, TinyPNG-style)</option>
+          <option value="image/jpeg">JPEG</option>
+          <option value="image/png">PNG</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <label>Quality <span id="optQualDisplay">80</span>%</label>
+        <input type="range" id="optQuality" min="10" max="100" value="80">
+      </div>
+      <button class="btn btn-accent" id="downloadOptimizedBtn" disabled>⇩ Download All (Optimized)</button>
+      <div class="prog-label" id="optSummary" style="display:none;margin-top:6px"></div>
     </div>
 
     <div>
       <div class="sec-label">Export</div>
       <button class="btn btn-accent" id="downloadAllBtn" disabled>⬇ Download All (PNG)</button>
       <button class="btn btn-green" id="downloadEditedBtn" disabled>⬇ Edited Only</button>
-      <button class="btn" id="resetAllBlurs" disabled>↺ Reset All Blurs</button>
+      <button class="btn" id="resetAllBlurs" disabled>↺ Reset All Edits</button>
       <button class="btn btn-danger" id="clearAllBtn" disabled>✕ Clear All</button>
     </div>
 
     <div class="progress-wrap" id="progressWrap">
-      <div class="sec-label">Exporting</div>
+      <div class="sec-label">Working</div>
       <div class="prog-bg"><div class="prog-fill" id="progFill"></div></div>
       <div class="prog-label" id="progLabel">…</div>
     </div>
@@ -382,7 +545,7 @@
 
   <div class="content">
     <div class="toolbar">
-      <div class="toolbar-hint">Click any image to <span>open editor</span> — paint to blur logos</div>
+      <div class="toolbar-hint">Click an image to <span>open editor</span> — use the checkbox to select for bulk actions</div>
       <button class="tbtn" id="selectAllBtn" disabled>Select All</button>
       <button class="tbtn" id="removeSelectedBtn" disabled style="color:var(--red);border-color:var(--red)">Remove Selected</button>
     </div>
@@ -390,7 +553,7 @@
       <div class="img-grid" id="imgGrid">
         <div class="empty">
           <div class="empty-icon">🖼</div>
-          <p>Upload images via the sidebar.<br>Click an image to open the blur editor.<br>Paint circles over logos — download at full resolution.</p>
+          <p>Upload images via the sidebar.<br>Click an image to open the editor — paint to blur logos, cut out backgrounds, and export optimized files.</p>
         </div>
       </div>
     </div>
@@ -415,37 +578,39 @@
         <canvas id="editorCanvas"></canvas>
         <canvas id="overlayCanvas"></canvas>
         <div id="cursorCircle"></div>
+        <div id="brushSizeHUD"></div>
+        <div class="canvas-busy" id="canvasBusy"><div class="gl-spinner"></div></div>
       </div>
     </div>
-    <!-- In-editor brush controls -->
+
     <div class="brush-panel">
       <div class="sec-label">Brush</div>
-
-      <div class="bp-pills">
-        <button class="bp-pill active" id="edModePaint">🖌 Paint</button>
-        <button class="bp-pill" id="edModeRect">▭ Rect</button>
+      <div class="mode-pills" style="margin:0">
+        <button class="mpill active" id="edModePaint">🖌 Paint</button>
+        <button class="mpill" id="edModeRect">▭ Rect</button>
       </div>
-
       <div class="bp-sep"></div>
-
       <div class="bp-group">
         <label>Size&nbsp;<b id="edBrushSzVal">60</b>px</label>
         <input type="range" id="edBrushSize" min="10" max="300" value="60">
       </div>
-
       <div class="bp-sep"></div>
-
       <div class="bp-group">
         <label>Strength&nbsp;<b id="edBlurStrVal">18</b></label>
         <input type="range" id="edBlurStr" min="4" max="50" value="18">
       </div>
-
       <div class="bp-sep"></div>
-
       <div class="bp-group">
         <label>Passes&nbsp;<b id="edBlurPassVal">3</b></label>
         <input type="range" id="edBlurPass" min="1" max="8" value="3">
       </div>
+    </div>
+
+    <div class="bg-panel">
+      <div class="sec-label">Background</div>
+      <button class="btn btn-accent" id="removeBgBtn" style="width:auto;margin-bottom:0">✨ Remove Background (AI)</button>
+      <button class="btn" id="restoreBgBtn" style="width:auto;margin-bottom:0">↺ Restore</button>
+      <div class="bg-status" id="bgStatus">Cuts out the background using an on-device AI model.</div>
     </div>
 
     <div class="modal-footer">
@@ -453,17 +618,125 @@
       <button class="btn" id="undoBtn">↩ Undo</button>
       <button class="btn" id="clearBlurBtn">↺ Clear</button>
       <button class="btn btn-danger" id="cancelBtn">Cancel</button>
-      <button class="btn btn-accent" id="applyBtn">✓ Apply & Save</button>
+      <button class="btn btn-accent" id="applyBtn">✓ Apply &amp; Save</button>
     </div>
   </div>
 </div>
 
+<div id="globalLoader">
+  <div class="gl-spinner"></div>
+  <div class="gl-text" id="globalLoaderText">Loading…</div>
+  <div class="gl-sub" id="globalLoaderSub"></div>
+</div>
+
+<div id="toastStack"></div>
+
+<footer>
+  <span>⚡ Vibe coded by <a href="https://github.com/salmanck66" target="_blank" rel="noopener">github.com/salmanck66</a> — follow for more tools like this</span>
+</footer>
+
+<script type="module">
+  // Lazy-loaded AI background removal (runs fully client-side via WASM).
+  // Requires the page to be served over http(s) — it will not work opened as a local file:// page.
+  let _removeBgFn = null;
+  let _loadingPromise = null;
+  async function ensureBgLib() {
+    if (_removeBgFn) return _removeBgFn;
+    if (_loadingPromise) return _loadingPromise; // avoid double-importing if called twice concurrently
+    _loadingPromise = (async () => {
+      const mod = await import('https://esm.sh/@imgly/background-removal@1.5.6');
+      _removeBgFn = mod.removeBackground;
+      return _removeBgFn;
+    })();
+    try {
+      return await _loadingPromise;
+    } finally {
+      _loadingPromise = null;
+    }
+  }
+  window.__aiRemoveBg = async function(blob, onProgress) {
+    const fn = await ensureBgLib();
+    return await fn(blob, {
+      progress: (key, current, total) => { if (onProgress) onProgress(key, current, total); }
+    });
+  };
+</script>
+
 <script>
+'use strict';
+
+// ─────────────────────────────────────────────
+//  Toasts — user-facing errors/success, nothing silently swallowed
+// ─────────────────────────────────────────────
+const toastStack = document.getElementById('toastStack');
+function showToast(message, type) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = message;
+  toastStack.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }, 4200);
+}
+
+// Catch anything unhandled so the user always sees what went wrong,
+// instead of the app silently freezing.
+window.addEventListener('error', (e) => {
+  console.error('Unhandled error:', e.error || e.message);
+  showToast('Something went wrong: ' + (e.message || 'unknown error'), 'error');
+  hideGlobalLoader(true);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('Unhandled promise rejection:', e.reason);
+  showToast('Something went wrong: ' + (e.reason && e.reason.message ? e.reason.message : 'unknown error'), 'error');
+  hideGlobalLoader(true);
+});
+
+// ─────────────────────────────────────────────
+//  Global loading overlay
+//  Heavy async work (downloading/loading the AI model, running inference)
+//  can take a while. Rather than let the page look frozen, we show a
+//  visible, non-frozen overlay with a spinner and status text so the
+//  user knows something is happening and roughly how long is left.
+// ─────────────────────────────────────────────
+const globalLoader     = document.getElementById('globalLoader');
+const globalLoaderText = document.getElementById('globalLoaderText');
+const globalLoaderSub  = document.getElementById('globalLoaderSub');
+let glCount = 0; // supports nested/overlapping show/hide calls safely
+
+function showGlobalLoader(text, sub, blocking) {
+  glCount++;
+  globalLoaderText.textContent = text || 'Loading…';
+  globalLoaderSub.textContent = sub || '';
+  globalLoader.classList.add('show');
+  globalLoader.classList.toggle('blocking', !!blocking);
+}
+function updateGlobalLoader(text, sub) {
+  if (text !== undefined) globalLoaderText.textContent = text;
+  if (sub !== undefined) globalLoaderSub.textContent = sub;
+}
+function hideGlobalLoader(force) {
+  glCount = force ? 0 : Math.max(0, glCount - 1);
+  if (glCount === 0) {
+    globalLoader.classList.remove('show');
+    globalLoader.classList.remove('blocking');
+  }
+}
+
+// Small helper: yields to the browser's paint/layout cycle so a loading
+// indicator actually appears on screen *before* a heavy synchronous task
+// (like the box-blur) starts running and blocks the main thread.
+function nextPaint() {
+  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
+const canvasBusy = document.getElementById('canvasBusy');
+function showCanvasBusy() { canvasBusy.classList.add('show'); }
+function hideCanvasBusy() { canvasBusy.classList.remove('show'); }
+
 // ─────────────────────────────────────────────
 //  State
 // ─────────────────────────────────────────────
 const S = {
-  images: [],       // { file, img, src, blurCanvas, edited, thumb }
+  images: [],       // { file, img, src, blurCanvas, edited, thumb, ver }
   selected: new Set(),
   editing: -1,
   mode: 'paint',    // 'paint' | 'rect'
@@ -472,18 +745,70 @@ const S = {
   blurPasses: 3,
 };
 
-// Per-session undo stack (snapshots of blurCanvas ImageData)
 let undoStack = [];
 const MAX_UNDO = 30;
-
-// For paint mode
 let isPainting = false;
-
-// For rect mode
 let isRect = false, rx0=0, ry0=0, rx1=0, ry1=0;
-
-// Scale: preview canvas coords → original image coords
 let edScale = 1;
+
+// ─────────────────────────────────────────────
+//  Local caching — IndexedDB (survives reloads) + in-memory (this session)
+// ─────────────────────────────────────────────
+const DB_NAME = 'clearcut-cache', DB_STORE = 'kv';
+let _dbPromise = null;
+function openDB() {
+  if (_dbPromise) return _dbPromise;
+  _dbPromise = new Promise((resolve, reject) => {
+    if (!window.indexedDB) { reject(new Error('IndexedDB not supported in this browser')); return; }
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return _dbPromise;
+}
+async function idbGet(key) {
+  try {
+    const db = await openDB();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readonly');
+      const r = tx.objectStore(DB_STORE).get(key);
+      r.onsuccess = () => resolve(r.result || null);
+      r.onerror = () => reject(r.error);
+    });
+  } catch (err) { console.warn('Cache read failed:', err); return null; }
+}
+async function idbSet(key, value) {
+  try {
+    const db = await openDB();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).put(value, key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) { console.warn('Cache write failed:', err); return false; }
+}
+function fileSig(f) { return `${f.name}_${f.size}_${f.lastModified}`; }
+
+const optCache = new Map(); // key: sig:format:ver:quality -> Blob
+
+const SETTINGS_KEY = 'clearcut-settings-v1';
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      brushSize: S.brushSize, blurStr: S.blurStr, blurPasses: S.blurPasses,
+      optFormat: optFormat ? optFormat.value : undefined,
+      optQuality: optQuality ? optQuality.value : undefined,
+    }));
+  } catch (err) { console.warn('Could not save settings:', err); }
+}
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) { console.warn('Could not load saved settings:', err); return null; }
+}
 
 // ─────────────────────────────────────────────
 //  DOM
@@ -511,8 +836,28 @@ const modalTitle     = document.getElementById('modalTitle');
 const editorCanvas   = document.getElementById('editorCanvas');
 const overlayCanvas  = document.getElementById('overlayCanvas');
 const cursorCircle   = document.getElementById('cursorCircle');
+const brushSizeHUD   = document.getElementById('brushSizeHUD');
 const canvasContainer= document.getElementById('canvasContainer');
 const mfinfo         = document.getElementById('mfinfo');
+const removeBgBtn    = document.getElementById('removeBgBtn');
+const restoreBgBtn   = document.getElementById('restoreBgBtn');
+const bgStatus       = document.getElementById('bgStatus');
+const removeBgSelectedBtn = document.getElementById('removeBgSelectedBtn');
+const bulkBgAllBtn   = document.getElementById('bulkBgAllBtn');
+const preloadModelBtn= document.getElementById('preloadModelBtn');
+const bgCacheStatus  = document.getElementById('bgCacheStatus');
+const modelBadge     = document.getElementById('modelBadge');
+const modelBadgeText = document.getElementById('modelBadgeText');
+const optFormat      = document.getElementById('optFormat');
+const optQuality     = document.getElementById('optQuality');
+const optQualDisplay = document.getElementById('optQualDisplay');
+const downloadOptimizedBtn = document.getElementById('downloadOptimizedBtn');
+const optSummary      = document.getElementById('optSummary');
+
+function setModelBadge(state, text) {
+  modelBadge.className = 'model-badge' + (state ? ' ' + state : '');
+  modelBadgeText.textContent = text;
+}
 
 // ─────────────────────────────────────────────
 //  Upload
@@ -524,24 +869,36 @@ dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.
 fileInput.addEventListener('change', () => { loadFiles(fileInput.files); fileInput.value=''; });
 
 function loadFiles(files) {
-  Array.from(files).forEach(f => {
-    if (!f.type.startsWith('image/')) return;
+  const list = Array.from(files || []);
+  if (!list.length) return;
+  let queued = 0, rejected = 0;
+  list.forEach(f => {
+    if (!f.type.startsWith('image/')) { rejected++; return; }
+    queued++;
     const reader = new FileReader();
+    reader.onerror = () => showToast(`Could not read "${f.name}" — file may be corrupted.`, 'error');
     reader.onload = ev => {
       const img = new Image();
+      img.onerror = () => showToast(`Could not decode "${f.name}" — unsupported or corrupted image.`, 'error');
       img.onload = () => {
-        // blurCanvas stores the accumulated blur strokes at full resolution
-        const bc = document.createElement('canvas');
-        bc.width = img.width; bc.height = img.height;
-        const bctx = bc.getContext('2d');
-        bctx.drawImage(img, 0, 0);
-        S.images.push({ file: f, img, src: ev.target.result, blurCanvas: bc, edited: false, thumb: ev.target.result });
-        renderGrid(); updateStats(); updateBtns();
+        try {
+          const bc = document.createElement('canvas');
+          bc.width = img.width; bc.height = img.height;
+          const bctx = bc.getContext('2d');
+          bctx.drawImage(img, 0, 0);
+          S.images.push({ file: f, img, src: ev.target.result, blurCanvas: bc, edited: false, thumb: ev.target.result, ver: 0 });
+          renderGrid(); updateStats(); updateBtns();
+          if (S.images.length === 1) preloadModel(); // warm the model as soon as there's something to process
+        } catch (err) {
+          console.error(err);
+          showToast(`Failed to process "${f.name}": ${err.message}`, 'error');
+        }
       };
       img.src = ev.target.result;
     };
     reader.readAsDataURL(f);
   });
+  if (rejected) showToast(`Skipped ${rejected} file${rejected!==1?'s':''} — only image files are supported.`, 'error');
 }
 
 // ─────────────────────────────────────────────
@@ -549,7 +906,7 @@ function loadFiles(files) {
 // ─────────────────────────────────────────────
 function renderGrid() {
   if (!S.images.length) {
-    imgGrid.innerHTML = `<div class="empty"><div class="empty-icon">🖼</div><p>Upload images via the sidebar.<br>Click an image to open the blur editor.<br>Paint circles over logos — download at full resolution.</p></div>`;
+    imgGrid.innerHTML = `<div class="empty"><div class="empty-icon">🖼</div><p>Upload images via the sidebar.<br>Click an image to open the editor — paint to blur logos, cut out backgrounds, and export optimized files.</p></div>`;
     return;
   }
   imgGrid.innerHTML = '';
@@ -560,7 +917,8 @@ function renderGrid() {
     card.innerHTML = `
       <div class="img-thumb">
         <img src="${im.thumb}" id="thumb${idx}" loading="lazy">
-        <div class="img-badge${im.edited ? ' show' : ''}" id="badge${idx}">BLURRED</div>
+        <div class="img-check${S.selected.has(idx) ? ' checked' : ''}" id="check${idx}">✓</div>
+        <div class="img-badge${im.edited ? ' show' : ''}" id="badge${idx}">EDITED</div>
       </div>
       <div class="img-footer">
         <div class="img-name" title="${im.file.name}">${im.file.name}</div>
@@ -568,6 +926,12 @@ function renderGrid() {
         <button class="icon-btn del" title="Remove" onclick="event.stopPropagation();removeImage(${idx})">✕</button>
       </div>`;
     card.addEventListener('click', () => openEditor(idx));
+    const checkEl = card.querySelector('.img-check');
+    checkEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (S.selected.has(idx)) S.selected.delete(idx); else S.selected.add(idx);
+      renderGrid(); updateBtns();
+    });
     imgGrid.appendChild(card);
   });
 }
@@ -588,6 +952,9 @@ function updateBtns() {
   clearAllBtn.disabled       = n === 0;
   selectAllBtn.disabled      = n === 0;
   removeSelectedBtn.disabled = S.selected.size === 0;
+  downloadOptimizedBtn.disabled = n === 0;
+  removeBgSelectedBtn.disabled  = S.selected.size === 0;
+  bulkBgAllBtn.disabled         = n === 0;
 }
 
 function updateStats() {
@@ -598,24 +965,25 @@ function updateStats() {
 // ─────────────────────────────────────────────
 //  Controls
 // ─────────────────────────────────────────────
-// Slider listeners are set up after the mode toggle section below
-
 selectAllBtn.addEventListener('click', () => {
   if (S.selected.size === S.images.length) S.selected.clear();
   else S.images.forEach((_, i) => S.selected.add(i));
   renderGrid(); updateBtns();
 });
 removeSelectedBtn.addEventListener('click', () => {
+  if (!S.selected.size) return;
+  if (!confirm(`Remove ${S.selected.size} selected image${S.selected.size!==1?'s':''}?`)) return;
   [...S.selected].sort((a,b)=>b-a).forEach(i => S.images.splice(i, 1));
   S.selected.clear(); renderGrid(); updateStats(); updateBtns();
 });
 resetAllBlurs.addEventListener('click', () => {
+  if (!confirm('Reset all images back to their original, unedited state?')) return;
   S.images.forEach(im => {
-    im.edited = false; im.thumb = im.src;
-    const bc = im.blurCanvas;
-    bc.getContext('2d').drawImage(im.img, 0, 0);
+    im.edited = false; im.thumb = im.src; im.ver++;
+    im.blurCanvas.getContext('2d').drawImage(im.img, 0, 0);
   });
   renderGrid(); updateStats(); updateBtns();
+  showToast('All edits reset.', 'success');
 });
 clearAllBtn.addEventListener('click', () => {
   if (!confirm('Remove all images?')) return;
@@ -654,7 +1022,6 @@ function boxBlurPass(data, w, h, r) {
   }
 }
 
-// Apply circular blur at position (cx,cy) with given radius on a canvas context
 function applyCircleBlur(ctx, cx, cy, radius, strength, passes) {
   const r = Math.ceil(radius);
   const x0 = Math.max(0, Math.floor(cx - r));
@@ -664,15 +1031,12 @@ function applyCircleBlur(ctx, cx, cy, radius, strength, passes) {
   const bw = x1 - x0, bh = y1 - y0;
   if (bw < 2 || bh < 2) return;
 
-  // Get bounding box pixels
   const imageData = ctx.getImageData(x0, y0, bw, bh);
   const blurred = new Uint8ClampedArray(imageData.data);
   const blurRad = Math.max(1, Math.round(strength));
-  // Run box blur on copy
   const tmp = new ImageData(blurred, bw, bh);
   for (let p = 0; p < passes; p++) boxBlurPass(tmp.data, bw, bh, blurRad);
 
-  // Write back only pixels inside circle
   const orig = imageData.data;
   const dest = tmp.data;
   for (let py = 0; py < bh; py++) {
@@ -690,7 +1054,6 @@ function applyCircleBlur(ctx, cx, cy, radius, strength, passes) {
   ctx.putImageData(imageData, x0, y0);
 }
 
-// Apply rect blur
 function applyRectBlur(ctx, rx, ry, rw, rh, strength, passes) {
   if (rw < 2 || rh < 2) return;
   const imageData = ctx.getImageData(rx, ry, rw, rh);
@@ -703,33 +1066,36 @@ function applyRectBlur(ctx, rx, ry, rw, rh, strength, passes) {
 //  Editor
 // ─────────────────────────────────────────────
 function openEditor(idx) {
+  const im = S.images[idx];
+  if (!im) { showToast('That image is no longer available.', 'error'); return; }
   S.editing = idx;
   undoStack = [];
 
-  const im = S.images[idx];
   const maxW = Math.min(window.innerWidth - 40, 920);
-  const maxH = window.innerHeight - 200;
+  const maxH = window.innerHeight - 260;
   edScale = Math.min(1, maxW / im.img.width, maxH / im.img.height);
 
-  const W = Math.floor(im.img.width  * edScale);
-  const H = Math.floor(im.img.height * edScale);
+  const W = Math.max(1, Math.floor(im.img.width  * edScale));
+  const H = Math.max(1, Math.floor(im.img.height * edScale));
 
   editorCanvas.width = W; editorCanvas.height = H;
   overlayCanvas.width = W; overlayCanvas.height = H;
   overlayCanvas.style.width  = W + 'px';
   overlayCanvas.style.height = H + 'px';
 
-  // Draw the blurCanvas (which contains all accumulated blurs) scaled to preview
   syncEditorFromBlurCanvas();
 
   modalTitle.textContent = `${im.file.name}  (${im.img.width}×${im.img.height}px)`;
+  bgStatus.textContent = 'Cuts out the background using an on-device AI model.';
   editorModal.classList.add('show');
   attachCanvasEvents();
-  renderGrid(); // highlight active card
+  updateNavBtns();
+  renderGrid();
 }
 
 function syncEditorFromBlurCanvas() {
   const im = S.images[S.editing];
+  if (!im) return;
   const ctx = editorCanvas.getContext('2d');
   ctx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
   ctx.drawImage(im.blurCanvas, 0, 0, editorCanvas.width, editorCanvas.height);
@@ -737,6 +1103,7 @@ function syncEditorFromBlurCanvas() {
 
 function saveUndo() {
   const im = S.images[S.editing];
+  if (!im) return;
   const ctx = im.blurCanvas.getContext('2d');
   const snap = ctx.getImageData(0, 0, im.blurCanvas.width, im.blurCanvas.height);
   undoStack.push(snap);
@@ -748,7 +1115,6 @@ function getCanvasPos(e) {
   const touch = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
   const clientX = touch.clientX;
   const clientY = touch.clientY;
-  // Canvas logical coords
   const scaleX = overlayCanvas.width  / rect.width;
   const scaleY = overlayCanvas.height / rect.height;
   return {
@@ -759,15 +1125,11 @@ function getCanvasPos(e) {
 }
 
 function updateCursorSize() {
-  const sz = (S.brushSize / edScale) * (overlayCanvas.getBoundingClientRect().width / overlayCanvas.width);
-  // brushSize is in preview pixels; show circle accordingly
   const displaySz = S.brushSize * (overlayCanvas.getBoundingClientRect().width / overlayCanvas.width);
   cursorCircle.style.width  = displaySz * 2 + 'px';
   cursorCircle.style.height = displaySz * 2 + 'px';
 }
 
-// overlay for rect mode
-let overlayAnim = null;
 function drawRectOverlay(x0, y0, x1, y1) {
   const oc = overlayCanvas.getContext('2d');
   oc.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
@@ -792,8 +1154,8 @@ function attachCanvasEvents() {
   overlayCanvas.onmouseup    = overlayCanvas.ontouchend    = onEnd;
   overlayCanvas.onmouseleave = () => { cursorCircle.style.display = 'none'; };
   overlayCanvas.onmouseenter = () => { if (S.mode === 'paint') cursorCircle.style.display = 'block'; };
-
   overlayCanvas.addEventListener('mousemove', moveCursor);
+  overlayCanvas.addEventListener('wheel', onBrushWheel, { passive: false });
 }
 
 function moveCursor(e) {
@@ -805,24 +1167,65 @@ function moveCursor(e) {
   updateCursorSize();
 }
 
+// Scroll the mouse wheel over the canvas to grow/shrink the brush,
+// centered on wherever the cursor currently is.
+let brushHUDTimer = null;
+function onBrushWheel(e) {
+  e.preventDefault();
+  const dir = e.deltaY > 0 ? -1 : 1; // scroll down = smaller, scroll up = bigger
+  const step = Math.max(2, Math.round(S.brushSize * 0.08));
+  const min = 5, max = 400;
+  const newSize = Math.min(max, Math.max(min, S.brushSize + dir * step));
+  if (newSize === S.brushSize) return;
+
+  syncSlider(newSize, 'brushSize', brushSizeRange, brushSzDisplay,
+    document.getElementById('edBrushSize'), document.getElementById('edBrushSzVal'));
+
+  // Show the live brush size next to the cursor while scrolling.
+  const rect = canvasContainer.getBoundingClientRect();
+  brushSizeHUD.textContent = newSize + 'px';
+  brushSizeHUD.style.left = (e.clientX - rect.left) + 'px';
+  brushSizeHUD.style.top  = (e.clientY - rect.top)  + 'px';
+  brushSizeHUD.style.display = 'block';
+  updateCursorSize();
+  moveCursor(e);
+  clearTimeout(brushHUDTimer);
+  brushHUDTimer = setTimeout(() => { brushSizeHUD.style.display = 'none'; }, 650);
+}
+
 function onStart(e) {
   e.preventDefault();
   const p = getCanvasPos(e);
   if (S.mode === 'paint') {
     saveUndo();
     isPainting = true;
-    paintBlurAt(p.x, p.y);
+    pendingPaintPos = p;
+    schedulePaint();
   } else {
     isRect = true;
     rx0 = p.x; ry0 = p.y; rx1 = p.x; ry1 = p.y;
   }
 }
 
+// Painting is throttled to one blur application per animation frame instead
+// of once per mousemove event. Fast mouse movement previously queued a full
+// synchronous box-blur for every pixel-level move event, which is what made
+// the canvas feel laggy/stuttery while dragging.
+let pendingPaintPos = null;
+let paintFrameQueued = false;
+function schedulePaint() {
+  if (paintFrameQueued) return;
+  paintFrameQueued = true;
+  requestAnimationFrame(() => {
+    paintFrameQueued = false;
+    if (isPainting && pendingPaintPos) paintBlurAt(pendingPaintPos.x, pendingPaintPos.y);
+  });
+}
+
 function onMove(e) {
   e.preventDefault();
   const p = getCanvasPos(e);
   if (S.mode === 'paint') {
-    // move cursor circle
     if (e.touches) {
       const rect = canvasContainer.getBoundingClientRect();
       cursorCircle.style.display = 'block';
@@ -830,7 +1233,7 @@ function onMove(e) {
       cursorCircle.style.top  = (e.touches[0].clientY - rect.top)  + 'px';
       updateCursorSize();
     }
-    if (isPainting) paintBlurAt(p.x, p.y);
+    if (isPainting) { pendingPaintPos = p; schedulePaint(); }
   } else if (isRect) {
     rx1 = p.x; ry1 = p.y;
     drawRectOverlay(rx0, ry0, rx1, ry1);
@@ -841,6 +1244,7 @@ function onEnd(e) {
   e.preventDefault();
   if (S.mode === 'paint') {
     isPainting = false;
+    pendingPaintPos = null;
   } else if (isRect) {
     isRect = false;
     clearOverlay();
@@ -849,58 +1253,66 @@ function onEnd(e) {
     const rw = Math.abs(rx1-rx0), rh = Math.abs(ry1-ry0);
     if (rw > 5 && rh > 5) {
       saveUndo();
-      // Apply to blurCanvas at full res
       const invS = 1 / edScale;
       const bx = Math.round(Math.min(rx0,rx1) * invS);
       const by = Math.round(Math.min(ry0,ry1) * invS);
       const bw = Math.round(rw * invS);
       const bh = Math.round(rh * invS);
       const im = S.images[S.editing];
-      const bctx = im.blurCanvas.getContext('2d');
-      applyRectBlur(bctx, bx, by, bw, bh, S.blurStr * 2, S.blurPasses);
-      syncEditorFromBlurCanvas();
+      if (im) {
+        try {
+          const bctx = im.blurCanvas.getContext('2d');
+          applyRectBlur(bctx, bx, by, bw, bh, S.blurStr * 2, S.blurPasses);
+          im.ver++;
+          syncEditorFromBlurCanvas();
+        } catch (err) {
+          console.error(err);
+          showToast('Could not apply blur: ' + err.message, 'error');
+        }
+      }
     }
   }
 }
 
 function paintBlurAt(px, py) {
-  // px,py in preview canvas coords
-  // Apply to blurCanvas at full resolution
   const im = S.images[S.editing];
-  const bctx = im.blurCanvas.getContext('2d');
-  const invS = 1 / edScale;
-  const fullX = px * invS;
-  const fullY = py * invS;
-  const fullR = S.brushSize * invS;
-  applyCircleBlur(bctx, fullX, fullY, fullR, S.blurStr * 1.5, S.blurPasses);
-  // Sync to preview
-  syncEditorFromBlurCanvas();
+  if (!im) return;
+  try {
+    const bctx = im.blurCanvas.getContext('2d');
+    const invS = 1 / edScale;
+    const fullX = px * invS;
+    const fullY = py * invS;
+    const fullR = S.brushSize * invS;
+    applyCircleBlur(bctx, fullX, fullY, fullR, S.blurStr * 1.5, S.blurPasses);
+    im.ver++;
+    syncEditorFromBlurCanvas();
+  } catch (err) {
+    console.error(err);
+    showToast('Could not apply blur: ' + err.message, 'error');
+    isPainting = false;
+  }
 }
 
 // ─────────────────────────────────────────────
-//  Mode toggle (header pills + editor panel pills — kept in sync)
+//  Mode toggle (blur tool)
 // ─────────────────────────────────────────────
 function setMode(mode) {
   S.mode = mode;
-  // Header pills
   document.getElementById('modePaint').classList.toggle('active', mode === 'paint');
   document.getElementById('modeRect').classList.toggle('active', mode === 'rect');
-  // Editor panel pills
   document.getElementById('edModePaint').classList.toggle('active', mode === 'paint');
   document.getElementById('edModeRect').classList.toggle('active', mode === 'rect');
   mfinfo.innerHTML = mode === 'paint'
-    ? 'Mode: <span>Paint Blur — click & drag to paint</span>'
+    ? 'Mode: <span>Paint Blur — click &amp; drag to paint, scroll to resize</span>'
     : 'Mode: <span>Rect Blur — draw a rectangle to blur</span>';
   cursorCircle.style.display = 'none';
   if (mode === 'rect') clearOverlay();
 }
-
 document.getElementById('modePaint').addEventListener('click', () => setMode('paint'));
 document.getElementById('modeRect').addEventListener('click',  () => setMode('rect'));
 document.getElementById('edModePaint').addEventListener('click', () => setMode('paint'));
 document.getElementById('edModeRect').addEventListener('click',  () => setMode('rect'));
 
-// Helper: sync both sidebar + editor panel sliders + displays
 function syncSlider(value, globalKey, sidebarEl, sidebarDisplay, editorEl, editorDisplay) {
   S[globalKey] = value;
   sidebarEl.value = value;
@@ -908,9 +1320,9 @@ function syncSlider(value, globalKey, sidebarEl, sidebarDisplay, editorEl, edito
   editorEl.value = value;
   editorDisplay.textContent = value;
   if (globalKey === 'brushSize') updateCursorSize();
+  saveSettings();
 }
 
-// Sidebar sliders → update both
 brushSizeRange.addEventListener('input', () =>
   syncSlider(+brushSizeRange.value, 'brushSize', brushSizeRange, brushSzDisplay,
     document.getElementById('edBrushSize'), document.getElementById('edBrushSzVal')));
@@ -921,7 +1333,6 @@ blurPassRange.addEventListener('input', () =>
   syncSlider(+blurPassRange.value, 'blurPasses', blurPassRange, blurPassDisplay,
     document.getElementById('edBlurPass'), document.getElementById('edBlurPassVal')));
 
-// Editor panel sliders → update both
 document.getElementById('edBrushSize').addEventListener('input', function() {
   syncSlider(+this.value, 'brushSize', brushSizeRange, brushSzDisplay, this, document.getElementById('edBrushSzVal'));
 });
@@ -932,100 +1343,317 @@ document.getElementById('edBlurPass').addEventListener('input', function() {
   syncSlider(+this.value, 'blurPasses', blurPassRange, blurPassDisplay, this, document.getElementById('edBlurPassVal'));
 });
 
+// Also allow scrolling over the sidebar brush-size slider to nudge it,
+// consistent with the on-canvas scroll-to-resize behavior.
+brushSizeRange.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const dir = e.deltaY > 0 ? -1 : 1;
+  const step = Math.max(2, Math.round(S.brushSize * 0.08));
+  const newSize = Math.min(200, Math.max(10, S.brushSize + dir * step));
+  syncSlider(newSize, 'brushSize', brushSizeRange, brushSzDisplay,
+    document.getElementById('edBrushSize'), document.getElementById('edBrushSzVal'));
+}, { passive: false });
+
+// ─────────────────────────────────────────────
+//  AI Background Removal
+// ─────────────────────────────────────────────
+async function applyAIBgRemoval(im, onStatus) {
+  const sig = fileSig(im.file);
+  let cached = null;
+  try {
+    cached = await idbGet('bg:' + sig);
+  } catch (err) {
+    console.warn('Cache lookup failed, continuing without cache:', err);
+  }
+  let outBlob;
+  if (cached) {
+    onStatus && onStatus('⚡ Cached result found — applying instantly…');
+    outBlob = cached;
+  } else {
+    onStatus && onStatus('Loading AI model…');
+    setModelBadge('loading', 'AI model: loading…');
+    let srcBlob;
+    try {
+      srcBlob = await new Promise((res, rej) => im.blurCanvas.toBlob(b => b ? res(b) : rej(new Error('Canvas export failed')), 'image/png'));
+    } catch (err) {
+      throw new Error('Could not prepare the image for AI processing: ' + err.message);
+    }
+    if (typeof window.__aiRemoveBg !== 'function') {
+      throw new Error('AI background removal is unavailable — check your internet connection.');
+    }
+    try {
+      outBlob = await window.__aiRemoveBg(srcBlob, (key, current, total) => {
+        const pct = total ? Math.round(current/total*100) : 0;
+        onStatus && onStatus(`${key}: ${pct}%`);
+        setModelBadge('loading', `AI model: ${pct}%`);
+      });
+    } catch (err) {
+      throw new Error('AI model failed to process the image: ' + (err && err.message ? err.message : 'unknown error'));
+    }
+    idbSet('bg:' + sig, outBlob).catch(err => console.warn('Could not cache result:', err));
+  }
+  const outImg = new Image();
+  await new Promise((res, rej) => {
+    outImg.onload = res;
+    outImg.onerror = () => rej(new Error('Failed to load the AI result image'));
+    outImg.src = URL.createObjectURL(outBlob);
+  });
+  const bctx = im.blurCanvas.getContext('2d');
+  bctx.clearRect(0, 0, im.blurCanvas.width, im.blurCanvas.height);
+  bctx.drawImage(outImg, 0, 0, im.blurCanvas.width, im.blurCanvas.height);
+  im.ver++;
+  setModelBadge('ready', 'AI model: ready');
+  bgCacheStatus.textContent = 'Model cache: ready ✓ — future runs will be fast.';
+  onStatus && onStatus(cached ? 'Background removed (cached).' : 'Background removed.');
+}
+
+async function preloadModel() {
+  setModelBadge('loading', 'AI model: loading…');
+  bgCacheStatus.textContent = 'Model cache: warming…';
+  showGlobalLoader('Loading AI model…', 'First load can take a little while — hang tight.');
+  await nextPaint(); // let the overlay actually paint before the heavy work starts
+  try {
+    const tinyCanvas = document.createElement('canvas');
+    tinyCanvas.width = 8; tinyCanvas.height = 8;
+    tinyCanvas.getContext('2d').fillRect(0,0,8,8);
+    const blob = await new Promise((res, rej) => tinyCanvas.toBlob(b => b ? res(b) : rej(new Error('toBlob failed')), 'image/png'));
+    if (typeof window.__aiRemoveBg !== 'function') throw new Error('AI module did not load');
+    await window.__aiRemoveBg(blob, (key, current, total) => {
+      const pct = total ? Math.round(current/total*100) : 0;
+      updateGlobalLoader('Loading AI model…', `${key}: ${pct}%`);
+      setModelBadge('loading', `AI model: ${pct}%`);
+    });
+    setModelBadge('ready', 'AI model: ready');
+    bgCacheStatus.textContent = 'Model cache: ready ✓ — background removal will be fast.';
+  } catch (err) {
+    console.error(err);
+    setModelBadge('error', 'AI model: unavailable');
+    bgCacheStatus.textContent = 'Model failed to load — check your internet connection and that this page is served over http(s).';
+    showToast('Could not load the AI model: ' + err.message, 'error');
+  } finally {
+    hideGlobalLoader();
+  }
+}
+preloadModelBtn.addEventListener('click', preloadModel);
+
+removeBgBtn.addEventListener('click', async () => {
+  if (S.editing < 0) return;
+  const im = S.images[S.editing];
+  if (!im) return;
+  saveUndo();
+  removeBgBtn.disabled = true;
+  showCanvasBusy();
+  showGlobalLoader('Removing background…', 'Running the AI model on-device.');
+  await nextPaint();
+  try {
+    await applyAIBgRemoval(im, (msg) => { bgStatus.textContent = msg; updateGlobalLoader(undefined, msg); });
+    syncEditorFromBlurCanvas();
+    renderGrid(); updateStats();
+  } catch (err) {
+    console.error(err);
+    bgStatus.textContent = 'AI removal failed — see the toast for details.';
+    showToast('Background removal failed: ' + err.message, 'error');
+    undoStack.pop();
+  } finally {
+    removeBgBtn.disabled = false;
+    hideCanvasBusy();
+    hideGlobalLoader();
+  }
+});
+
+restoreBgBtn.addEventListener('click', () => {
+  if (S.editing < 0) return;
+  const im = S.images[S.editing];
+  if (!im) return;
+  if (!confirm('Restore the original image? This clears all edits made in the editor.')) return;
+  try {
+    saveUndo();
+    im.blurCanvas.getContext('2d').drawImage(im.img, 0, 0);
+    im.ver++;
+    syncEditorFromBlurCanvas();
+    bgStatus.textContent = 'Original image restored.';
+  } catch (err) {
+    console.error(err);
+    showToast('Could not restore the image: ' + err.message, 'error');
+  }
+});
+
+async function bulkRemoveBackground(indices) {
+  if (!indices.length) return;
+  progressWrap.style.display = 'block';
+  progFill.style.width = '0%';
+  showGlobalLoader('Removing backgrounds…', `0/${indices.length} images processed`, true);
+  await nextPaint();
+  let failed = 0;
+  for (let i = 0; i < indices.length; i++) {
+    const idx = indices[i];
+    const im = S.images[idx];
+    if (!im) continue;
+    progLabel.textContent = `${i+1}/${indices.length}: ${im.file.name}`;
+    progFill.style.width = ((i+1)/indices.length*100) + '%';
+    updateGlobalLoader(`Removing backgrounds… (${i+1}/${indices.length})`, im.file.name);
+    try {
+      await applyAIBgRemoval(im, msg => {
+        progLabel.textContent = `${i+1}/${indices.length}: ${im.file.name} — ${msg}`;
+        updateGlobalLoader(undefined, `${im.file.name} — ${msg}`);
+      });
+      im.edited = true;
+      const thumbCanvas = document.createElement('canvas');
+      const tw = 320, th = Math.max(1, Math.round(320 * im.img.height / im.img.width));
+      thumbCanvas.width = tw; thumbCanvas.height = th;
+      thumbCanvas.getContext('2d').drawImage(im.blurCanvas, 0, 0, tw, th);
+      im.thumb = thumbCanvas.toDataURL('image/png');
+    } catch (err) {
+      console.error('Background removal failed for', im.file.name, err);
+      failed++;
+    }
+    if (S.editing === idx) syncEditorFromBlurCanvas();
+  }
+  const ok = indices.length - failed;
+  progLabel.textContent = `✓ Done — background removed on ${ok}/${indices.length} image${indices.length!==1?'s':''}`;
+  if (failed) showToast(`${failed} image${failed!==1?'s':''} failed background removal — check console for details.`, 'error');
+  else showToast(`Background removed on ${ok} image${ok!==1?'s':''}.`, 'success');
+  hideGlobalLoader();
+  setTimeout(() => { progressWrap.style.display = 'none'; }, 3000);
+  renderGrid(); updateStats(); updateBtns();
+}
+
+removeBgSelectedBtn.addEventListener('click', () => {
+  if (!S.selected.size) { showToast('Select at least one image first.', 'error'); return; }
+  bulkRemoveBackground([...S.selected]);
+});
+bulkBgAllBtn.addEventListener('click', () => {
+  if (!S.images.length) return;
+  bulkRemoveBackground(S.images.map((_, i) => i));
+});
+
 // ─────────────────────────────────────────────
 //  Editor footer buttons
 // ─────────────────────────────────────────────
 document.getElementById('undoBtn').addEventListener('click', () => {
-  if (!undoStack.length) return;
-  const snap = undoStack.pop();
-  const im = S.images[S.editing];
-  im.blurCanvas.getContext('2d').putImageData(snap, 0, 0);
-  syncEditorFromBlurCanvas();
+  if (!undoStack.length) { showToast('Nothing to undo.', 'error'); return; }
+  try {
+    const snap = undoStack.pop();
+    const im = S.images[S.editing];
+    if (!im) return;
+    im.blurCanvas.getContext('2d').putImageData(snap, 0, 0);
+    im.ver++;
+    syncEditorFromBlurCanvas();
+  } catch (err) {
+    console.error(err);
+    showToast('Undo failed: ' + err.message, 'error');
+  }
 });
 
 document.getElementById('clearBlurBtn').addEventListener('click', () => {
-  if (!confirm('Clear all blur on this image?')) return;
-  saveUndo();
+  if (!confirm('Clear all edits on this image?')) return;
   const im = S.images[S.editing];
-  im.blurCanvas.getContext('2d').drawImage(im.img, 0, 0);
-  syncEditorFromBlurCanvas();
+  if (!im) return;
+  try {
+    saveUndo();
+    im.blurCanvas.getContext('2d').drawImage(im.img, 0, 0);
+    im.ver++;
+    syncEditorFromBlurCanvas();
+  } catch (err) {
+    console.error(err);
+    showToast('Could not clear edits: ' + err.message, 'error');
+  }
 });
 
 document.getElementById('closeModalBtn').addEventListener('click', closeModal);
-document.getElementById('cancelBtn').addEventListener('click', () => {
-  // Revert blurCanvas to original if not applied
-  closeModal();
-});
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
 
 document.getElementById('applyBtn').addEventListener('click', () => {
   const idx = S.editing;
   const im = S.images[idx];
-  // Check if anything was changed (compare vs original src)
-  im.edited = true;
-  // Thumbnail: scale blurCanvas down
-  const thumbCanvas = document.createElement('canvas');
-  const tw = 320, th = Math.round(320 * im.img.height / im.img.width);
-  thumbCanvas.width = tw; thumbCanvas.height = th;
-  thumbCanvas.getContext('2d').drawImage(im.blurCanvas, 0, 0, tw, th);
-  im.thumb = thumbCanvas.toDataURL('image/jpeg', 0.85);
+  if (!im) { closeModal(); return; }
+  try {
+    im.edited = true;
+    const thumbCanvas = document.createElement('canvas');
+    const tw = 320, th = Math.max(1, Math.round(320 * im.img.height / im.img.width));
+    thumbCanvas.width = tw; thumbCanvas.height = th;
+    thumbCanvas.getContext('2d').drawImage(im.blurCanvas, 0, 0, tw, th);
+    im.thumb = thumbCanvas.toDataURL('image/png');
+  } catch (err) {
+    console.error(err);
+    showToast('Could not save this image: ' + err.message, 'error');
+  }
   closeModal();
   renderGrid(); updateStats(); updateBtns();
 });
 
-// Navigation
 document.getElementById('prevBtn').addEventListener('click', () => {
   if (S.editing > 0) openEditor(S.editing - 1);
 });
 document.getElementById('nextBtn').addEventListener('click', () => {
   if (S.editing < S.images.length - 1) openEditor(S.editing + 1);
 });
-// Update nav btn state when modal opens
 function updateNavBtns() {
   document.getElementById('prevBtn').disabled = S.editing <= 0;
   document.getElementById('nextBtn').disabled = S.editing >= S.images.length - 1;
 }
-
-const _openEditor = openEditor;
-openEditor = idx => {
-  _openEditor(idx);
-  updateNavBtns();
-};
 
 function closeModal() {
   editorModal.classList.remove('show');
   overlayCanvas.onmousedown = overlayCanvas.onmousemove = overlayCanvas.onmouseup = null;
   overlayCanvas.ontouchstart = overlayCanvas.ontouchmove = overlayCanvas.ontouchend = null;
   overlayCanvas.onmouseleave = overlayCanvas.onmouseenter = null;
+  overlayCanvas.removeEventListener('wheel', onBrushWheel);
   cursorCircle.style.display = 'none';
-  isPainting = false; isRect = false;
+  brushSizeHUD.style.display = 'none';
+  isPainting = false; isRect = false; pendingPaintPos = null;
 }
 
 // ─────────────────────────────────────────────
 //  Export
 // ─────────────────────────────────────────────
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function downloadOne(idx) {
   const im = S.images[idx];
-  // blurCanvas IS the full-res edited canvas
-  const name = im.file.name.replace(/\.[^.]+$/, '') + '-blurred.png';
-  im.blurCanvas.toBlob(blob => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = name; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }, 'image/png');
+  if (!im) { showToast('That image is no longer available.', 'error'); return; }
+  const name = im.file.name.replace(/\.[^.]+$/, '') + '-clearcut.png';
+  try {
+    im.blurCanvas.toBlob(blob => {
+      if (!blob) { showToast(`Could not export "${im.file.name}".`, 'error'); return; }
+      downloadBlob(blob, name);
+    }, 'image/png');
+  } catch (err) {
+    console.error(err);
+    showToast(`Could not export "${im.file.name}": ${err.message}`, 'error');
+  }
 }
 
 async function downloadBatch(indices) {
+  if (!indices.length) { showToast('Nothing to download.', 'error'); return; }
   progressWrap.style.display = 'block';
   progFill.style.width = '0%';
+  let failed = 0;
   for (let i = 0; i < indices.length; i++) {
     const idx = indices[i];
-    progLabel.textContent = `${i+1}/${indices.length}: ${S.images[idx].file.name}`;
+    const im = S.images[idx];
+    if (!im) continue;
+    progLabel.textContent = `${i+1}/${indices.length}: ${im.file.name}`;
     progFill.style.width = ((i+1)/indices.length*100) + '%';
+    try {
+      await new Promise((resolve, reject) => {
+        im.blurCanvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('export failed')), 'image/png');
+      }).then(blob => downloadBlob(blob, im.file.name.replace(/\.[^.]+$/, '') + '-clearcut.png'));
+    } catch (err) {
+      console.error('Download failed for', im.file.name, err);
+      failed++;
+    }
     await new Promise(r => setTimeout(r, 100));
-    downloadOne(idx);
   }
-  progLabel.textContent = `✓ Done — ${indices.length} file${indices.length!==1?'s':''} downloaded`;
+  progLabel.textContent = failed
+    ? `⚠ Done with ${failed} error${failed!==1?'s':''} — ${indices.length - failed}/${indices.length} downloaded`
+    : `✓ Done — ${indices.length} file${indices.length!==1?'s':''} downloaded`;
+  if (failed) showToast(`${failed} file${failed!==1?'s':''} failed to export.`, 'error');
   setTimeout(() => { progressWrap.style.display = 'none'; }, 3000);
 }
 
@@ -1033,6 +1661,80 @@ downloadAllBtn.addEventListener('click', () => downloadBatch(S.images.map((_,i)=
 downloadEditedBtn.addEventListener('click', () => {
   downloadBatch(S.images.map((im,i)=>im.edited?i:-1).filter(i=>i>=0));
 });
+
+// ─────────────────────────────────────────────
+//  Optimize
+// ─────────────────────────────────────────────
+optQuality.addEventListener('input', () => { optQualDisplay.textContent = optQuality.value; saveSettings(); });
+optFormat.addEventListener('change', saveSettings);
+
+function extForMime(mime) {
+  return mime === 'image/webp' ? 'webp' : mime === 'image/jpeg' ? 'jpg' : 'png';
+}
+function canvasToBlob(canvas, mime, quality) {
+  return new Promise((res, rej) => canvas.toBlob(b => b ? res(b) : rej(new Error('Encoding failed')), mime, quality));
+}
+
+async function downloadOptimizedBatch(indices) {
+  if (!indices.length) { showToast('Nothing to optimize.', 'error'); return; }
+  const mime = optFormat.value;
+  const quality = (+optQuality.value) / 100;
+  progressWrap.style.display = 'block';
+  progFill.style.width = '0%';
+  let totalOrig = 0, totalNew = 0, cacheHits = 0, failed = 0;
+  for (let i = 0; i < indices.length; i++) {
+    const idx = indices[i];
+    const im = S.images[idx];
+    if (!im) continue;
+    progLabel.textContent = `${i+1}/${indices.length}: ${im.file.name}`;
+    progFill.style.width = ((i+1)/indices.length*100) + '%';
+    const cacheKey = `${fileSig(im.file)}:${mime}:v${im.ver}:${mime==='image/png' ? '-' : quality}`;
+    try {
+      let blob = optCache.get(cacheKey);
+      if (!blob) {
+        blob = await canvasToBlob(im.blurCanvas, mime, mime === 'image/png' ? undefined : quality);
+        optCache.set(cacheKey, blob);
+      } else {
+        cacheHits++;
+      }
+      totalOrig += im.file.size;
+      totalNew += blob.size;
+      downloadBlob(blob, im.file.name.replace(/\.[^.]+$/, '') + '-optimized.' + extForMime(mime));
+    } catch (err) {
+      console.error('Optimize failed for', im.file.name, err);
+      failed++;
+    }
+    await new Promise(r => setTimeout(r, 100));
+  }
+  const pct = totalOrig ? Math.round((1 - totalNew/totalOrig) * 100) : 0;
+  progLabel.textContent = failed
+    ? `⚠ Done with ${failed} error${failed!==1?'s':''}`
+    : `✓ Done — ${indices.length} file${indices.length!==1?'s':''} downloaded${cacheHits ? ` (${cacheHits} from cache)` : ''}`;
+  if (totalOrig) {
+    optSummary.style.display = 'block';
+    optSummary.textContent = `${(totalOrig/1024).toFixed(0)}KB → ${(totalNew/1024).toFixed(0)}KB (${pct>=0?'-':'+'}${Math.abs(pct)}%)`;
+  }
+  if (failed) showToast(`${failed} image${failed!==1?'s':''} failed to optimize.`, 'error');
+  setTimeout(() => { progressWrap.style.display = 'none'; }, 3000);
+}
+downloadOptimizedBtn.addEventListener('click', () => downloadOptimizedBatch(S.images.map((_,i)=>i)));
+
+// ─────────────────────────────────────────────
+//  Init
+// ─────────────────────────────────────────────
+(function init() {
+  if (!window.indexedDB) showToast('Your browser lacks IndexedDB — result caching will be disabled.', 'error');
+  if (!HTMLCanvasElement.prototype.toBlob) showToast('Your browser cannot export images from canvas. Please use a modern browser.', 'error');
+
+  const saved = loadSettings();
+  if (saved) {
+    if (saved.brushSize) syncSlider(saved.brushSize, 'brushSize', brushSizeRange, brushSzDisplay, document.getElementById('edBrushSize'), document.getElementById('edBrushSzVal'));
+    if (saved.blurStr)   syncSlider(saved.blurStr, 'blurStr', blurStrRange, blurStrDisplay, document.getElementById('edBlurStr'), document.getElementById('edBlurStrVal'));
+    if (saved.blurPasses)syncSlider(saved.blurPasses, 'blurPasses', blurPassRange, blurPassDisplay, document.getElementById('edBlurPass'), document.getElementById('edBlurPassVal'));
+    if (saved.optFormat) optFormat.value = saved.optFormat;
+    if (saved.optQuality) { optQuality.value = saved.optQuality; optQualDisplay.textContent = saved.optQuality; }
+  }
+})();
 </script>
 </body>
 </html>
