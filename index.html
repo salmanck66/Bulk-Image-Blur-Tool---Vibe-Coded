@@ -321,6 +321,20 @@
         font-size: 0.75rem;
         cursor: pointer;
       }
+      input.instyle {
+        width: 100%;
+        padding: 0.45rem 0.6rem;
+        border-radius: 7px;
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        font-size: 0.75rem;
+      }
+      input.instyle:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
 
       .hint-text {
         font-size: 0.68rem;
@@ -378,6 +392,15 @@
       .tbtn:disabled {
         opacity: 0.3;
         cursor: not-allowed;
+      }
+      .tbtn.tbtn-accent {
+        color: var(--accent);
+        border-color: rgba(232, 255, 71, 0.4);
+      }
+      .tbtn.tbtn-accent:hover:not(:disabled) {
+        color: #0e0e0f;
+        background: var(--accent);
+        border-color: var(--accent);
       }
 
       .grid-wrap {
@@ -501,6 +524,13 @@
         text-overflow: ellipsis;
         white-space: nowrap;
         font-family: "DM Mono", monospace;
+      }
+      .img-dims {
+        font-family: "DM Mono", monospace;
+        font-size: 0.55rem;
+        color: var(--muted);
+        flex-shrink: 0;
+        opacity: 0.8;
       }
       .icon-btn {
         width: 24px;
@@ -785,6 +815,37 @@
         color: var(--accent2);
       }
 
+      /* ── Uniform Canvas tool modal ── */
+      .ct-modal {
+        max-width: 440px;
+      }
+      .ct-body {
+        padding: 1.1rem 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        overflow-y: auto;
+      }
+      .ct-row2 {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .ct-preview {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.6rem 0.75rem;
+        font-family: "DM Mono", monospace;
+        font-size: 0.66rem;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .ct-preview b {
+        color: var(--accent);
+        font-weight: 500;
+      }
+
       /* ── Global loading overlay — keeps heavy async work (model download / inference)
        from looking like a frozen page ── */
       #globalLoader {
@@ -1036,6 +1097,9 @@
             Click an image to <span>open editor</span> — use the checkbox to
             select for bulk actions
           </div>
+          <button class="tbtn tbtn-accent" id="uniformCanvasBtn" disabled>
+            ▣ Uniform Canvas
+          </button>
           <button class="tbtn" id="selectAllBtn" disabled>Select All</button>
           <button
             class="tbtn"
@@ -1163,6 +1227,105 @@
           <button class="btn btn-accent" id="applyBtn">
             ✓ Apply &amp; Save
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Uniform Canvas Tool Modal -->
+    <div class="modal-overlay" id="canvasToolModal">
+      <div class="modal ct-modal">
+        <div class="modal-header">
+          <div class="modal-title">▣ Uniform Canvas — equal size, no stretch</div>
+          <button
+            class="icon-btn"
+            id="closeCanvasToolBtn"
+            style="
+              width: auto;
+              padding: 0 10px;
+              font-size: 0.78rem;
+              height: 30px;
+            "
+          >
+            ✕
+          </button>
+        </div>
+        <div class="ct-body">
+          <div class="ctrl" style="margin-bottom: 0">
+            <label>Target shape</label>
+            <select class="selstyle" id="ctRatio">
+              <option value="1:1">Square 1:1 (marketplace standard)</option>
+              <option value="4:5">Portrait 4:5 (Instagram feed)</option>
+              <option value="3:4">Portrait 3:4</option>
+              <option value="2:3">Portrait 2:3</option>
+              <option value="16:9">Landscape 16:9</option>
+              <option value="exact">Exact pixels (e.g. 1000 × 1000)…</option>
+            </select>
+          </div>
+          <div class="ct-row2" id="ctExactRow" style="display: none">
+            <input
+              type="number"
+              class="instyle"
+              id="ctW"
+              min="50"
+              value="1000"
+              placeholder="Width px"
+            />
+            <span style="color: var(--muted); font-size: 0.75rem">×</span>
+            <input
+              type="number"
+              class="instyle"
+              id="ctH"
+              min="50"
+              value="1000"
+              placeholder="Height px"
+            />
+          </div>
+          <div class="ctrl" style="margin-bottom: 0">
+            <label>Margin around product <span id="ctMarginVal">5</span>%</label>
+            <input type="range" id="ctMargin" min="0" max="25" value="5" />
+          </div>
+          <div class="ctrl" style="margin-bottom: 0">
+            <label>Background fill</label>
+            <div class="ct-row2">
+              <select class="selstyle" id="ctBgMode" style="flex: 1">
+                <option value="white">White (recommended for products)</option>
+                <option value="custom">Custom color</option>
+                <option value="transparent">Transparent (PNG/WebP only)</option>
+              </select>
+              <input
+                type="color"
+                id="ctBgColor"
+                value="#ffffff"
+                style="
+                  width: 40px;
+                  height: 34px;
+                  border: 1px solid var(--border);
+                  border-radius: 7px;
+                  background: var(--surface2);
+                  padding: 3px;
+                  cursor: pointer;
+                  display: none;
+                "
+              />
+            </div>
+          </div>
+          <div class="ct-preview" id="ctPreview">
+            The product is <b>fitted &amp; centered</b> — never stretched or
+            cropped. Empty space is filled with the background so every image
+            ends up the same rectangle.
+          </div>
+          <div class="ct-row2">
+            <button class="btn" id="ctApplySelectedBtn" style="margin-bottom: 0">
+              Apply — Selected (<span id="ctSelCount">0</span>)
+            </button>
+            <button
+              class="btn btn-accent"
+              id="ctApplyAllBtn"
+              style="margin-bottom: 0"
+            >
+              Apply — All Images
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1453,6 +1616,20 @@
         "downloadOptimizedBtn",
       );
       const optSummary = document.getElementById("optSummary");
+      const uniformCanvasBtn = document.getElementById("uniformCanvasBtn");
+      const canvasToolModal = document.getElementById("canvasToolModal");
+      const closeCanvasToolBtn = document.getElementById("closeCanvasToolBtn");
+      const ctRatio = document.getElementById("ctRatio");
+      const ctExactRow = document.getElementById("ctExactRow");
+      const ctW = document.getElementById("ctW");
+      const ctH = document.getElementById("ctH");
+      const ctMargin = document.getElementById("ctMargin");
+      const ctMarginVal = document.getElementById("ctMarginVal");
+      const ctBgMode = document.getElementById("ctBgMode");
+      const ctBgColor = document.getElementById("ctBgColor");
+      const ctSelCount = document.getElementById("ctSelCount");
+      const ctApplySelectedBtn = document.getElementById("ctApplySelectedBtn");
+      const ctApplyAllBtn = document.getElementById("ctApplyAllBtn");
 
       function setModelBadge(state, text) {
         modelBadge.className = "model-badge" + (state ? " " + state : "");
@@ -1567,6 +1744,7 @@
       </div>
       <div class="img-footer">
         <div class="img-name" title="${im.file.name}">${im.file.name}</div>
+        <div class="img-dims">${im.blurCanvas.width}×${im.blurCanvas.height}</div>
         <button class="icon-btn" title="Download" onclick="event.stopPropagation();downloadOne(${idx})">⬇</button>
         <button class="icon-btn del" title="Remove" onclick="event.stopPropagation();removeImage(${idx})">✕</button>
       </div>`;
@@ -1604,6 +1782,7 @@
         downloadOptimizedBtn.disabled = n === 0;
         removeBgSelectedBtn.disabled = S.selected.size === 0;
         bulkBgAllBtn.disabled = n === 0;
+        uniformCanvasBtn.disabled = n === 0;
       }
 
       function updateStats() {
@@ -1647,6 +1826,9 @@
           im.edited = false;
           im.thumb = im.src;
           im.ver++;
+          // Rebuild the working canvas at the (possibly padded) original size
+          im.blurCanvas.width = im.img.width;
+          im.blurCanvas.height = im.img.height;
           im.blurCanvas.getContext("2d").drawImage(im.img, 0, 0);
         });
         renderGrid();
@@ -1663,6 +1845,280 @@
         updateStats();
         updateBtns();
       });
+
+      // ─────────────────────────────────────────────
+      //  Uniform Canvas — pad every image to the same rectangle
+      //  The product photo is fitted & centered (never stretched); the
+      //  remaining space is filled with white / a chosen color / transparency.
+      // ─────────────────────────────────────────────
+      const CT_SETTINGS_KEY = "clearcut-canvastool-v1";
+
+      function ctSaveSettings() {
+        try {
+          localStorage.setItem(
+            CT_SETTINGS_KEY,
+            JSON.stringify({
+              ratio: ctRatio.value,
+              w: ctW.value,
+              h: ctH.value,
+              margin: ctMargin.value,
+              bgMode: ctBgMode.value,
+              bgColor: ctBgColor.value,
+            }),
+          );
+        } catch (err) {
+          console.warn("Could not save canvas tool settings:", err);
+        }
+      }
+      function ctLoadSettings() {
+        try {
+          const raw = localStorage.getItem(CT_SETTINGS_KEY);
+          if (!raw) return;
+          const s = JSON.parse(raw);
+          if (s.ratio) ctRatio.value = s.ratio;
+          if (s.w) ctW.value = s.w;
+          if (s.h) ctH.value = s.h;
+          if (s.margin !== undefined) {
+            ctMargin.value = s.margin;
+            ctMarginVal.textContent = s.margin;
+          }
+          if (s.bgMode) ctBgMode.value = s.bgMode;
+          if (s.bgColor) ctBgColor.value = s.bgColor;
+          ctSyncUI();
+        } catch (err) {
+          console.warn("Could not load canvas tool settings:", err);
+        }
+      }
+
+      function ctSyncUI() {
+        ctExactRow.style.display =
+          ctRatio.value === "exact" ? "flex" : "none";
+        ctBgColor.style.display =
+          ctBgMode.value === "custom" ? "block" : "none";
+      }
+      ctRatio.addEventListener("change", () => {
+        ctSyncUI();
+        ctSaveSettings();
+      });
+      ctBgMode.addEventListener("change", () => {
+        ctSyncUI();
+        ctSaveSettings();
+      });
+      ctBgColor.addEventListener("input", ctSaveSettings);
+      ctW.addEventListener("input", ctSaveSettings);
+      ctH.addEventListener("input", ctSaveSettings);
+      ctMargin.addEventListener("input", () => {
+        ctMarginVal.textContent = ctMargin.value;
+        ctSaveSettings();
+      });
+
+      uniformCanvasBtn.addEventListener("click", () => {
+        if (!S.images.length) return;
+        ctSelCount.textContent = S.selected.size;
+        ctApplySelectedBtn.disabled = S.selected.size === 0;
+        canvasToolModal.classList.add("show");
+      });
+      closeCanvasToolBtn.addEventListener("click", () =>
+        canvasToolModal.classList.remove("show"),
+      );
+      canvasToolModal.addEventListener("click", (e) => {
+        if (e.target === canvasToolModal)
+          canvasToolModal.classList.remove("show");
+      });
+
+      function readCanvasToolOpts() {
+        const opts = { margin: +ctMargin.value, bg: null };
+        if (ctBgMode.value === "white") opts.bg = "#ffffff";
+        else if (ctBgMode.value === "custom") opts.bg = ctBgColor.value;
+        if (ctRatio.value === "exact") {
+          const w = Math.round(+ctW.value);
+          const h = Math.round(+ctH.value);
+          if (!(w >= 50) || !(h >= 50) || w > 8000 || h > 8000) {
+            showToast(
+              "Enter a valid width and height (50–8000 px).",
+              "error",
+            );
+            return null;
+          }
+          opts.mode = "exact";
+          opts.w = w;
+          opts.h = h;
+        } else {
+          const parts = ctRatio.value.split(":").map(Number);
+          opts.mode = "ratio";
+          opts.rw = parts[0];
+          opts.rh = parts[1];
+        }
+        return opts;
+      }
+
+      // Builds a new canvas of the target rectangle with the source canvas
+      // fitted inside (contain), centered, on the chosen background.
+      function buildPaddedCanvas(srcCanvas, opts) {
+        const sw = srcCanvas.width,
+          sh = srcCanvas.height;
+        let tw, th;
+        if (opts.mode === "exact") {
+          tw = opts.w;
+          th = opts.h;
+        } else {
+          const tr = opts.rw / opts.rh;
+          if (sw / sh > tr) {
+            // source is wider than target → keep width, extend height
+            tw = sw;
+            th = Math.round(sw / tr);
+          } else {
+            // source is taller than target → keep height, extend width
+            th = sh;
+            tw = Math.round(sh * tr);
+          }
+        }
+        const m = Math.min(0.4, opts.margin / 100);
+        const availW = tw * (1 - 2 * m);
+        const availH = th * (1 - 2 * m);
+        let scale = Math.min(availW / sw, availH / sh);
+        // In ratio mode never upscale the product — only add canvas around it.
+        if (opts.mode !== "exact") scale = Math.min(scale, 1);
+        const dw = Math.max(1, Math.round(sw * scale));
+        const dh = Math.max(1, Math.round(sh * scale));
+
+        const out = document.createElement("canvas");
+        out.width = tw;
+        out.height = th;
+        const ctx = out.getContext("2d");
+        if (opts.bg) {
+          ctx.fillStyle = opts.bg;
+          ctx.fillRect(0, 0, tw, th);
+        }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(
+          srcCanvas,
+          Math.round((tw - dw) / 2),
+          Math.round((th - dh) / 2),
+          dw,
+          dh,
+        );
+        return out;
+      }
+
+      async function padOneImage(im, opts) {
+        // 1) Pad the current working state (keeps any blur / bg-removal edits)
+        const paddedWork = buildPaddedCanvas(im.blurCanvas, opts);
+
+        // 2) Pad the original the same way, so "Restore" / "Clear" stays
+        //    consistent with the new canvas size instead of snapping back
+        //    to the old dimensions.
+        const origC = document.createElement("canvas");
+        origC.width = im.img.width;
+        origC.height = im.img.height;
+        origC.getContext("2d").drawImage(im.img, 0, 0);
+        const paddedOrig = buildPaddedCanvas(origC, opts);
+
+        const dataUrl = paddedOrig.toDataURL("image/png");
+        const newImg = new Image();
+        await new Promise((res, rej) => {
+          newImg.onload = res;
+          newImg.onerror = () =>
+            rej(new Error("Failed to rebuild the padded image"));
+          newImg.src = dataUrl;
+        });
+
+        im.img = newImg;
+        im.src = dataUrl;
+        im.blurCanvas = paddedWork;
+        im.edited = true;
+        im.ver++;
+
+        const thumbCanvas = document.createElement("canvas");
+        const tw = 320,
+          th = Math.max(
+            1,
+            Math.round((320 * paddedWork.height) / paddedWork.width),
+          );
+        thumbCanvas.width = tw;
+        thumbCanvas.height = th;
+        thumbCanvas.getContext("2d").drawImage(paddedWork, 0, 0, tw, th);
+        im.thumb = thumbCanvas.toDataURL("image/png");
+      }
+
+      async function padBatch(indices) {
+        const opts = readCanvasToolOpts();
+        if (!opts) return;
+        if (!indices.length) {
+          showToast("Nothing to process.", "error");
+          return;
+        }
+        if (opts.bg === null && optFormat.value === "image/jpeg") {
+          showToast(
+            "Note: transparent padding will turn black in JPEG exports — use PNG/WebP.",
+            "error",
+          );
+        }
+        canvasToolModal.classList.remove("show");
+        progressWrap.style.display = "block";
+        progFill.style.width = "0%";
+        showGlobalLoader(
+          "Equalizing canvases…",
+          `0/${indices.length} images processed`,
+          true,
+        );
+        await nextPaint();
+        let failed = 0;
+        for (let i = 0; i < indices.length; i++) {
+          const idx = indices[i];
+          const im = S.images[idx];
+          if (!im) continue;
+          progLabel.textContent = `${i + 1}/${indices.length}: ${im.file.name}`;
+          progFill.style.width = ((i + 1) / indices.length) * 100 + "%";
+          updateGlobalLoader(
+            `Equalizing canvases… (${i + 1}/${indices.length})`,
+            im.file.name,
+          );
+          try {
+            await padOneImage(im, opts);
+          } catch (err) {
+            console.error("Canvas equalize failed for", im.file.name, err);
+            failed++;
+          }
+          // Yield occasionally so the progress UI stays responsive
+          if (i % 3 === 2) await nextPaint();
+        }
+        const ok = indices.length - failed;
+        const label =
+          opts.mode === "exact"
+            ? `${opts.w}×${opts.h}px`
+            : `${opts.rw}:${opts.rh}`;
+        progLabel.textContent = `✓ Done — ${ok}/${indices.length} image${indices.length !== 1 ? "s" : ""} set to ${label}`;
+        if (failed)
+          showToast(
+            `${failed} image${failed !== 1 ? "s" : ""} failed — check console for details.`,
+            "error",
+          );
+        else
+          showToast(
+            `${ok} image${ok !== 1 ? "s" : ""} padded to a uniform ${label} canvas.`,
+            "success",
+          );
+        hideGlobalLoader();
+        setTimeout(() => {
+          progressWrap.style.display = "none";
+        }, 3000);
+        renderGrid();
+        updateStats();
+        updateBtns();
+      }
+
+      ctApplySelectedBtn.addEventListener("click", () => {
+        if (!S.selected.size) {
+          showToast("Select at least one image first.", "error");
+          return;
+        }
+        padBatch([...S.selected]);
+      });
+      ctApplyAllBtn.addEventListener("click", () =>
+        padBatch(S.images.map((_, i) => i)),
+      );
 
       // ─────────────────────────────────────────────
       //  Blur Engine
@@ -1765,12 +2221,17 @@
         S.editing = idx;
         undoStack = [];
 
+        // Size the editor from the working canvas (its dimensions may have
+        // been changed by the Uniform Canvas tool).
+        const cw = im.blurCanvas.width;
+        const ch = im.blurCanvas.height;
+
         const maxW = Math.min(window.innerWidth - 40, 920);
         const maxH = window.innerHeight - 260;
-        edScale = Math.min(1, maxW / im.img.width, maxH / im.img.height);
+        edScale = Math.min(1, maxW / cw, maxH / ch);
 
-        const W = Math.max(1, Math.floor(im.img.width * edScale));
-        const H = Math.max(1, Math.floor(im.img.height * edScale));
+        const W = Math.max(1, Math.floor(cw * edScale));
+        const H = Math.max(1, Math.floor(ch * edScale));
 
         editorCanvas.width = W;
         editorCanvas.height = H;
@@ -1781,7 +2242,7 @@
 
         syncEditorFromBlurCanvas();
 
-        modalTitle.textContent = `${im.file.name}  (${im.img.width}×${im.img.height}px)`;
+        modalTitle.textContent = `${im.file.name}  (${cw}×${ch}px)`;
         bgStatus.textContent =
           "Cuts out the background using an on-device AI model.";
         editorModal.classList.add("show");
@@ -2201,7 +2662,7 @@
       //  AI Background Removal
       // ─────────────────────────────────────────────
       async function applyAIBgRemoval(im, onStatus) {
-        const sig = fileSig(im.file);
+        const sig = fileSig(im.file) + ":v" + im.ver;
         let cached = null;
         try {
           cached = await idbGet("bg:" + sig);
@@ -2358,9 +2819,11 @@
           return;
         try {
           saveUndo();
+          im.blurCanvas.width = im.img.width;
+          im.blurCanvas.height = im.img.height;
           im.blurCanvas.getContext("2d").drawImage(im.img, 0, 0);
           im.ver++;
-          syncEditorFromBlurCanvas();
+          openEditor(S.editing); // re-fit the editor in case dimensions changed
           bgStatus.textContent = "Original image restored.";
         } catch (err) {
           console.error(err);
@@ -2399,7 +2862,9 @@
             const tw = 320,
               th = Math.max(
                 1,
-                Math.round((320 * im.img.height) / im.img.width),
+                Math.round(
+                  (320 * im.blurCanvas.height) / im.blurCanvas.width,
+                ),
               );
             thumbCanvas.width = tw;
             thumbCanvas.height = th;
@@ -2471,9 +2936,11 @@
         if (!im) return;
         try {
           saveUndo();
+          im.blurCanvas.width = im.img.width;
+          im.blurCanvas.height = im.img.height;
           im.blurCanvas.getContext("2d").drawImage(im.img, 0, 0);
           im.ver++;
-          syncEditorFromBlurCanvas();
+          openEditor(S.editing); // re-fit in case dimensions changed
         } catch (err) {
           console.error(err);
           showToast("Could not clear edits: " + err.message, "error");
@@ -2498,7 +2965,10 @@
           im.edited = true;
           const thumbCanvas = document.createElement("canvas");
           const tw = 320,
-            th = Math.max(1, Math.round((320 * im.img.height) / im.img.width));
+            th = Math.max(
+              1,
+              Math.round((320 * im.blurCanvas.height) / im.blurCanvas.width),
+            );
           thumbCanvas.width = tw;
           thumbCanvas.height = th;
           thumbCanvas.getContext("2d").drawImage(im.blurCanvas, 0, 0, tw, th);
@@ -2780,6 +3250,8 @@
             optQualDisplay.textContent = saved.optQuality;
           }
         }
+        ctLoadSettings();
+        ctSyncUI();
       })();
     </script>
   </body>
