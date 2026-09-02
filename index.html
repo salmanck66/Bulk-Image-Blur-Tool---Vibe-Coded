@@ -1097,6 +1097,9 @@
             Click an image to <span>open editor</span> — use the checkbox to
             select for bulk actions
           </div>
+          <button class="tbtn tbtn-accent" id="quickSquareBtn" disabled>
+            ⬜ Make Square
+          </button>
           <button class="tbtn tbtn-accent" id="uniformCanvasBtn" disabled>
             ▣ Uniform Canvas
           </button>
@@ -1617,6 +1620,7 @@
       );
       const optSummary = document.getElementById("optSummary");
       const uniformCanvasBtn = document.getElementById("uniformCanvasBtn");
+      const quickSquareBtn = document.getElementById("quickSquareBtn");
       const canvasToolModal = document.getElementById("canvasToolModal");
       const closeCanvasToolBtn = document.getElementById("closeCanvasToolBtn");
       const ctRatio = document.getElementById("ctRatio");
@@ -1783,6 +1787,7 @@
         removeBgSelectedBtn.disabled = S.selected.size === 0;
         bulkBgAllBtn.disabled = n === 0;
         uniformCanvasBtn.disabled = n === 0;
+        quickSquareBtn.disabled = n === 0;
       }
 
       function updateStats() {
@@ -2042,8 +2047,10 @@
         im.thumb = thumbCanvas.toDataURL("image/png");
       }
 
-      async function padBatch(indices) {
-        const opts = readCanvasToolOpts();
+      // presetOpts lets callers (e.g. the one-click "Make Square" button) skip
+      // the modal entirely and pass a fixed configuration instead.
+      async function padBatch(indices, presetOpts) {
+        const opts = presetOpts || readCanvasToolOpts();
         if (!opts) return;
         if (!indices.length) {
           showToast("Nothing to process.", "error");
@@ -2119,6 +2126,22 @@
       ctApplyAllBtn.addEventListener("click", () =>
         padBatch(S.images.map((_, i) => i)),
       );
+
+      // One-click: pad to a perfect square with white sides, no margin.
+      // Works on the current selection if there is one, otherwise every image.
+      quickSquareBtn.addEventListener("click", () => {
+        if (!S.images.length) return;
+        const indices = S.selected.size
+          ? [...S.selected]
+          : S.images.map((_, i) => i);
+        padBatch(indices, {
+          mode: "ratio",
+          rw: 1,
+          rh: 1,
+          margin: 0,
+          bg: "#ffffff",
+        });
+      });
 
       // ─────────────────────────────────────────────
       //  Blur Engine
