@@ -76,10 +76,12 @@
         color: var(--muted); text-transform: uppercase; margin-bottom: 0.5rem;
       }
 
+      aside > * { flex-shrink: 0; }
       details.panel {
         border: 1px solid var(--border); border-radius: 10px;
-        background: rgba(255,255,255,0.012); overflow: hidden;
+        background: rgba(255,255,255,0.012); overflow: hidden; flex-shrink: 0;
       }
+      details.panel[open] { background: rgba(232,255,71,0.03); }
       details.panel > summary {
         list-style: none; cursor: pointer; padding: 0.6rem 0.75rem;
         font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; gap: 7px;
@@ -105,8 +107,11 @@
 
       .ctrl { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.55rem; }
       .ctrl:last-child { margin-bottom: 0; }
-      .ctrl label { display: flex; justify-content: space-between; font-size: 0.73rem; color: var(--muted); gap: 6px; }
-      .ctrl label span, .ctrl label b { font-family: "DM Mono", monospace; color: var(--accent); font-weight: 500; }
+      .ctrl label { display: flex; align-items: baseline; font-size: 0.73rem; color: var(--muted); gap: 3px; }
+      .ctrl label span, .ctrl label b {
+        font-family: "DM Mono", monospace; color: var(--accent); font-weight: 500; margin-left: auto;
+      }
+      .ctrl label span + *, .ctrl label b + * { margin-left: 0; }
       input[type="range"] {
         width: 100%; -webkit-appearance: none; appearance: none; height: 3px;
         background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
@@ -570,7 +575,7 @@
           </div>
         </details>
 
-        <details class="panel" open>
+        <details class="panel">
           <summary>⇩ Export</summary>
           <div class="panel-body">
             <div class="ctrl">
@@ -3040,6 +3045,14 @@
         } catch (err) { console.warn("Could not load settings:", err); }
         ctLoad(); ctSyncUI();
         buildPresetUI();
+        const panels = [...document.querySelectorAll("aside details.panel")];
+        panels.forEach((p) =>
+          p.addEventListener("toggle", () => {
+            if (!p.open) return;
+            panels.forEach((o) => { if (o !== p) o.open = false; });
+            requestAnimationFrame(() => p.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+          })
+        );
         ["bgFillMode", "edBgMode", "wmType", "rsMode"].forEach((id) => $(id).dispatchEvent(new Event("change")));
         setTool("blur");
         updateBtns();
